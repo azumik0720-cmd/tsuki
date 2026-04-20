@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="tsuki">
+<meta name="theme-color" content="#ecf4f9">
+<title>tsuki</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+:root {
+  --bg:    #ecf4f9;
+  --pink:  #e48979;
+  --tan:   #beafa6;
+  --green: #105744;
+  --blue:  #a1c1de;
+  --white: #ffffff;
+  --text:  #1a1a1a;
+  --sep:   rgba(16,87,68,.09);
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body {
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  background:var(--bg); color:var(--text);
+  display:flex; flex-direction:column; height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Loading ── */
+#loading {
+  position:fixed; inset:0; background:var(--white);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:999; gap:12px;
+}
+#loading .ld-logo { font-family:'Bebas Neue',sans-serif; font-size:40px; letter-spacing:.08em; color:var(--green); }
+#loading p { font-size:11px; letter-spacing:.14em; color:var(--tan); text-transform:uppercase; }
+
+/* ── Login ── */
+#login-screen {
+  position:fixed; inset:0; background:var(--white);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 32px; z-index:100; gap:0;
+}
+.login-logo { font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:.08em; color:var(--green); margin-bottom:4px; }
+.login-sub { font-size:11px; letter-spacing:.16em; color:var(--tan); text-transform:uppercase; margin-bottom:48px; }
+.login-fields { width:100%; max-width:300px; border-top:1px solid var(--sep); border-bottom:1px solid var(--sep); margin-bottom:20px; }
+.login-fields input {
+  display:block; width:100%; background:transparent; border:none; border-bottom:1px solid var(--sep);
+  padding:16px 0; color:var(--text); font-family:-apple-system,sans-serif; font-size:16px; outline:none; letter-spacing:.02em;
+}
+.login-fields input:last-child { border-bottom:none; }
+.login-fields input::placeholder { color:var(--tan); }
+.login-err { color:var(--pink); font-size:12px; min-height:18px; margin-bottom:8px; }
+.login-btn {
+  width:100%; max-width:300px; background:var(--green); border:none;
+  padding:16px; color:var(--white); font-family:-apple-system,sans-serif;
+  font-size:15px; letter-spacing:.1em; cursor:pointer; transition:opacity .15s;
+}
+.login-btn:active { opacity:.8; }
+
+/* ── Header ── */
+header {
+  background:rgba(236,244,249,.94); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  padding:12px 18px 10px; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--sep); flex-shrink:0;
+}
+.hd-logo { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:.06em; color:var(--green); }
+.hd-right { text-align:right; }
+.hd-cycle { font-size:11px; color:var(--green); opacity:.55; letter-spacing:.03em; font-weight:300; line-height:1.6; }
+.hd-badge { display:inline-block; background:var(--pink); color:var(--white); font-size:10px; font-weight:600; letter-spacing:.06em; padding:2px 8px; border-radius:3px; margin-top:2px; }
+
+/* ── Content ── */
+#app { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.tab-content { flex:1; overflow-y:auto; padding:14px 14px 86px; display:none; }
+.tab-content.active { display:block; }
+
+/* ── Bottom Nav ── */
+nav {
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(255,255,255,.94); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--sep); display:flex;
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:50;
+}
+.nav-item {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:4px 0; cursor:pointer; color:var(--tan); border:none; background:none; transition:color .15s;
+}
+.nav-item.active { color:var(--pink); }
+.nav-item svg { width:22px; height:22px; }
+.nav-item span { font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-weight:500; }
+
+/* ── Hero ── */
+.hero {
+  background:var(--pink); border-radius:var(--radius);
+  padding:14px 16px 12px; margin-bottom:10px;
+}
+.hero-day { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:white; opacity:.72; font-weight:500; margin-bottom:5px; }
+.hero-main { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.05em; color:white; line-height:1.2; margin-bottom:4px; }
+.hero-sub { font-size:12px; color:white; opacity:.8; font-weight:300; letter-spacing:.03em; }
+
+/* ── Rec Grid ── */
+.rec-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--sep); border-radius:var(--radius); overflow:hidden; margin-bottom:10px; }
+.rec-cell { background:var(--white); padding:12px 14px; display:flex; flex-direction:column; min-height:82px; }
+.rc-label { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--green); opacity:.5; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.rc-label svg { width:10px; height:10px; stroke:currentColor; fill:none; stroke-width:2; flex-shrink:0; }
+.rc-val { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:.04em; color:var(--green); line-height:1; }
+.rc-val.pink { color:var(--pink); }
+.rc-sub { font-size:10px; color:var(--green); opacity:.4; font-weight:300; margin-top:auto; padding-top:4px; letter-spacing:.02em; }
+
+/* ── Section Header ── */
+.sec-hd { font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--green); opacity:.4; font-weight:600; margin:16px 2px 8px; }
+
+/* ── Quick Actions ── */
+.quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.quick-btn {
+  background:var(--white); border-radius:var(--radius); padding:14px 14px 12px;
+  display:flex; flex-direction:column; gap:8px; cursor:pointer; border:none;
+  font-family:-apple-system,sans-serif; transition:opacity .1s;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.quick-btn:active { opacity:.7; }
+.qb-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+.qb-icon svg { width:20px; height:20px; stroke:white; fill:none; stroke-width:1.8; }
+.qb-lbl { font-size:13px; font-weight:500; color:var(--text); letter-spacing:.01em; }
+.qb-sub { font-size:10px; color:var(--green); opacity:.4; font-weight:300; letter-spacing:.03em; margin-top:-4px; }
+
+/* ── Period Badge ── */
+.period-badge {
+  background:rgba(228,137,121,.1); border:1px solid rgba(228,137,121,.25);
+  border-radius:8px; padding:10px 14px; margin-bottom:10px;
+  display:flex; align-items:center; gap:10px; cursor:pointer;
+}
+.pb-dot { width:7px; height:7px; border-radius:50%; background:var(--pink); animation:blink 1.8s ease-in-out infinite; flex-shrink:0; }
+@keyframes blink { 0%,100%{opacity:.2}50%{opacity:1} }
+.pb-text { font-size:13px; color:var(--pink); font-weight:500; letter-spacing:.02em; }
+
+/* ── Calendar ── */
+.cal-month-block { margin-bottom:22px; }
+.cal-month-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.06em; color:var(--green); margin-bottom:10px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--sep); border-radius:var(--radius); overflow:hidden; }
+.cal-dow { background:var(--bg); text-align:center; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--green); opacity:.45; font-weight:600; padding:6px 0; }
+.cal-day {
+  background:var(--white); aspect-ratio:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; cursor:pointer; font-size:13px;
+  color:var(--green); position:relative; gap:2px; transition:opacity .1s;
+}
+.cal-day:active { opacity:.6; }
+.cal-day.empty { background:var(--bg); cursor:default; }
+.cal-day.today { background:var(--pink); color:white; font-weight:600; }
+.cal-day.period { background:rgba(228,137,121,.12); color:var(--pink); }
+.cal-day.ovulation { background:rgba(16,87,68,.06); }
+.cal-day.ovulation::after { content:''; position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:var(--green); opacity:.5; }
+.cal-day.timing::before { content:''; position:absolute; top:3px; right:3px; width:4px; height:4px; border-radius:50%; background:var(--pink); opacity:.6; }
+.cal-day.recommend { outline:1.5px solid var(--pink); outline-offset:-1.5px; }
+.tdot { width:3px; height:3px; border-radius:50%; }
+.cal-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; padding:0 2px; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--green); opacity:.5; font-weight:500; letter-spacing:.03em; }
+.ldot { width:10px; height:10px; border-radius:2px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.25);
+  display:flex; align-items:flex-end; z-index:200;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+}
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal {
+  background:var(--white); width:100%; border-radius:18px 18px 0 0;
+  padding:0 20px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(100%); transition:transform .3s cubic-bezier(.32,1,.23,1);
+  max-height:86vh; overflow-y:auto; border-top:1px solid var(--sep);
+}
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-handle { width:34px; height:4px; background:var(--sep); border-radius:2px; margin:10px auto 18px; }
+.modal-eyebrow { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); opacity:.4; margin-bottom:5px; font-weight:600; }
+.modal-title { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:.06em; color:var(--green); margin-bottom:22px; }
+.form-group { margin-bottom:18px; }
+.form-label { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); opacity:.45; font-weight:600; margin-bottom:8px; display:block; }
+.form-input {
+  width:100%; background:transparent; border:none; border-bottom:1.5px solid var(--sep);
+  padding:10px 0; color:var(--text); font-family:-apple-system,sans-serif; font-size:16px; outline:none; letter-spacing:.02em;
+}
+.form-input:focus { border-bottom-color:var(--pink); }
+.toggle-group { display:flex; gap:8px; flex-wrap:wrap; }
+.toggle-btn {
+  padding:8px 16px; border:1.5px solid var(--sep); border-radius:20px;
+  background:transparent; color:var(--green); font-size:13px; cursor:pointer;
+  font-family:-apple-system,sans-serif; font-weight:400; letter-spacing:.02em; transition:all .15s;
+}
+.toggle-btn.active { background:var(--pink); color:white; border-color:var(--pink); }
+.save-btn {
+  width:100%; background:var(--green); border:none; border-radius:var(--radius);
+  padding:15px; color:white; font-family:-apple-system,sans-serif;
+  font-size:15px; letter-spacing:.08em; cursor:pointer; margin-top:10px;
+}
+.save-btn:active { opacity:.8; }
+
+/* ── Graph ── */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+.stat-card { background:var(--white); border-radius:var(--radius); padding:12px 10px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.stat-val { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.04em; color:var(--green); }
+.stat-lbl { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--green); opacity:.4; margin-top:3px; font-weight:600; }
+.graph-card { background:var(--white); border-radius:var(--radius); padding:14px; margin-bottom:10px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.graph-title { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); opacity:.4; font-weight:600; margin-bottom:12px; }
+canvas { max-height:200px; }
+.temp-list { background:var(--white); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.temp-row { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; border-bottom:1px solid var(--sep); }
+.temp-row:last-child { border-bottom:none; }
+.temp-date { font-size:13px; color:var(--green); opacity:.5; font-weight:300; letter-spacing:.02em; }
+.temp-val { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:.04em; }
+.temp-val.low { color:var(--blue); }
+.temp-val.high { color:var(--pink); }
+.temp-memo { font-size:10px; color:var(--green); opacity:.4; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ── Simulation ── */
+.sim-title { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:.06em; color:var(--green); margin-bottom:4px; }
+.sim-sub { font-size:12px; color:var(--green); opacity:.5; font-weight:300; letter-spacing:.03em; line-height:1.7; margin-bottom:16px; }
+.sim-date-card { background:var(--white); border-radius:var(--radius); padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.06); margin-bottom:10px; }
+.sim-date-card label { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); opacity:.4; font-weight:600; display:block; margin-bottom:10px; }
+.sim-date-card input[type=date] { width:100%; background:transparent; border:none; border-bottom:1.5px solid var(--sep); padding:8px 0; color:var(--text); font-size:16px; font-family:-apple-system,sans-serif; outline:none; }
+.sim-btn { width:100%; background:var(--green); border:none; border-radius:var(--radius); padding:14px; color:white; font-family:-apple-system,sans-serif; font-size:15px; letter-spacing:.08em; cursor:pointer; margin-top:12px; }
+.tl-wrap { display:flex; flex-direction:column; }
+.tl-item { display:flex; gap:14px; }
+.tl-spine { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:16px; }
+.tl-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+.tl-dot.pink { background:var(--pink); }
+.tl-dot.green { background:var(--green); }
+.tl-dot.tan { background:var(--tan); }
+.tl-line { width:1.5px; flex:1; background:var(--sep); min-height:16px; }
+.tl-body { padding-bottom:16px; flex:1; }
+.tl-date { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:.04em; color:var(--green); }
+.tl-label { font-size:13px; color:var(--green); margin-top:2px; font-weight:400; letter-spacing:.02em; }
+.tl-desc { font-size:11px; color:var(--green); opacity:.45; margin-top:3px; line-height:1.6; font-weight:300; }
+
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="ld-logo">TSUKI</div>
+  <p>loading</p>
+</div>
+
+<div id="login-screen" class="hidden">
+  <div class="login-logo">TSUKI</div>
+  <div class="login-sub">妊活ノート</div>
+  <div class="login-fields">
+    <input type="email" id="login-email" placeholder="メールアドレス" autocomplete="email">
+    <input type="password" id="login-pass" placeholder="パスワード" autocomplete="current-password">
+  </div>
+  <div class="login-err" id="login-err"></div>
+  <button class="login-btn" onclick="doLogin()">ログイン</button>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="hd-logo">TSUKI</div>
+    <div class="hd-right">
+      <div class="hd-cycle" id="header-cycle">読み込み中</div>
+      <span class="hd-badge" id="header-phase"></span>
+    </div>
+  </header>
+
+  <!-- Home -->
+  <div class="tab-content active" id="tab-home">
+    <div class="hero">
+      <div class="hero-day" id="today-label">today</div>
+      <div class="hero-main" id="today-main">—</div>
+      <div class="hero-sub" id="today-sub"></div>
+    </div>
+    <div id="period-badge-wrap"></div>
+    <div class="rec-grid">
+      <div class="rec-cell">
+        <div class="rc-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>排卵予測日</div>
+        <div class="rc-val pink" id="rc-ov-date">—</div>
+        <div class="rc-sub" id="rc-ov-sub"></div>
+      </div>
+      <div class="rec-cell">
+        <div class="rc-label"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>タイミング推奨</div>
+        <div class="rc-val" id="rc-tim-date">—</div>
+        <div class="rc-sub" id="rc-tim-sub"></div>
+      </div>
+      <div class="rec-cell">
+        <div class="rc-label"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>検査薬推奨日</div>
+        <div class="rc-val" id="rc-test-date">—</div>
+        <div class="rc-sub" id="rc-test-sub"></div>
+      </div>
+      <div class="rec-cell">
+        <div class="rc-label"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>次回生理予測</div>
+        <div class="rc-val" id="rc-next-date">—</div>
+        <div class="rc-sub" id="rc-next-sub"></div>
+      </div>
+    </div>
+    <div class="sec-hd">record</div>
+    <div class="quick-grid">
+      <button class="quick-btn" onclick="openModal('temp')">
+        <div class="qb-icon" style="background:var(--pink);"><svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div>
+        <div class="qb-lbl">体温を記録</div><div class="qb-sub">basal temp</div>
+      </button>
+      <button class="quick-btn" onclick="openModal('period')">
+        <div class="qb-icon" style="background:var(--green);"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>
+        <div class="qb-lbl">生理を記録</div><div class="qb-sub">period</div>
+      </button>
+      <button class="quick-btn" onclick="openModal('timing')">
+        <div class="qb-icon" style="background:var(--blue);"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+        <div class="qb-lbl">タイミング記録</div><div class="qb-sub">intimacy</div>
+      </button>
+      <button class="quick-btn" onclick="openModal('memo')">
+        <div class="qb-icon" style="background:var(--tan);"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+        <div class="qb-lbl">メモ</div><div class="qb-sub">note</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="tab-content" id="tab-calendar">
+    <div id="cal-months-container"></div>
+    <div class="cal-legend">
+      <div class="legend-item"><div class="ldot" style="background:rgba(228,137,121,.2);border:1px solid var(--pink);"></div>生理</div>
+      <div class="legend-item"><div class="ldot" style="background:rgba(16,87,68,.08);"></div>排卵予測</div>
+      <div class="legend-item"><div class="ldot" style="outline:1.5px solid var(--pink);outline-offset:-1px;"></div>推奨日</div>
+      <div class="legend-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--pink);opacity:.6;"></div>タイミング</div>
+    </div>
+  </div>
+
+  <!-- Graph -->
+  <div class="tab-content" id="tab-graph">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="stat-cycle">—</div><div class="stat-lbl">cycle</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-low" style="color:var(--blue)">—</div><div class="stat-lbl">low</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-high" style="color:var(--pink)">—</div><div class="stat-lbl">high</div></div>
+    </div>
+    <div class="graph-card"><div class="graph-title">basal body temperature</div><canvas id="tempChart"></canvas></div>
+    <div class="sec-hd">log</div>
+    <div class="temp-list" id="temp-list"></div>
+  </div>
+
+  <!-- Simulation -->
+  <div class="tab-content" id="tab-sim">
+    <div class="sim-title">After Pregnancy</div>
+    <div class="sim-sub">最終生理開始日から出産・育休までのスケジュールを計算します</div>
+    <div class="sim-date-card">
+      <label>last menstrual period</label>
+      <input type="date" id="sim-lmp" onchange="calcSimulation()">
+      <button class="sim-btn" onclick="calcSimulation()">計算する</button>
+    </div>
+    <div id="sim-result" class="hidden"><div class="tl-wrap" id="sim-timeline"></div></div>
+  </div>
+</div>
+
+<nav id="bottom-nav" class="hidden">
+  <button class="nav-item active" onclick="switchTab('home')" data-tab="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>home</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('calendar')" data-tab="calendar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>calendar</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('graph')" data-tab="graph">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span>graph</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('sim')" data-tab="sim">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span>simul</span>
+  </button>
+</nav>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-handle"></div>
+    <div class="modal-eyebrow" id="modal-eyebrow"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ohqgpmtkhhixvnkrjbvb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_sAkbWL4FDT2Wt8Q-YYP0Nw_gThPQIX4';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:false} });
+
+let currentUser=null, allTemps=[], allPeriods=[], allTimings=[], allMemos=[];
+let chartInstance=null, modalDate=null, modalType=null;
+
+// swipe down to close modal
+let touchStartY=0;
+document.getElementById('modal-inner').addEventListener('touchstart',e=>{ touchStartY=e.touches[0].clientY; },{passive:true});
+document.getElementById('modal-inner').addEventListener('touchmove',e=>{
+  const d=e.touches[0].clientY-touchStartY;
+  if(d>0) document.getElementById('modal-inner').style.transform=`translateY(${d}px)`;
+},{passive:true});
+document.getElementById('modal-inner').addEventListener('touchend',e=>{
+  const d=e.changedTouches[0].clientY-touchStartY;
+  document.getElementById('modal-inner').style.transform='';
+  if(d>80) closeModal();
+},{passive:true});
+
+async function checkSession(){
+  try{ const{data:{session}}=await db.auth.getSession(); if(session){currentUser=session.user;showApp();}else showLogin(); }catch(e){showLogin();}
+}
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-err'); err.textContent='';
+  try{
+    const{data,error}=await db.auth.signInWithPassword({email,password:pass});
+    if(error){err.textContent='メールアドレスかパスワードが違います';return;}
+    currentUser=data.user; showApp();
+  }catch(e){err.textContent='接続エラー: '+e.message;}
+}
+function showLogin(){ document.getElementById('loading').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); }
+async function showApp(){
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('bottom-nav').classList.remove('hidden');
+  await loadAllData();
+}
+
+async function loadAllData(){ await Promise.all([loadTemps(),loadPeriods(),loadTimings(),loadMemos()]); updateHome();renderCalendar();renderGraph(); }
+async function loadTemps(){ const{data}=await db.from('temperatures').select('*').eq('user_id',currentUser.id).order('date',{ascending:false}).limit(60); allTemps=data||[]; }
+async function loadPeriods(){ const{data}=await db.from('periods').select('*').eq('user_id',currentUser.id).order('start_date',{ascending:false}).limit(12); allPeriods=data||[]; }
+async function loadTimings(){ const{data}=await db.from('timings').select('*').eq('user_id',currentUser.id).order('date',{ascending:false}).limit(60); allTimings=data||[]; }
+async function loadMemos(){ const{data}=await db.from('memos').select('*').eq('user_id',currentUser.id).order('date',{ascending:false}).limit(60); allMemos=data||[]; }
+
+function getAvgCycle(){
+  if(allPeriods.length<2) return 28;
+  const diffs=[];
+  for(let i=0;i<allPeriods.length-1&&i<5;i++){ const a=new Date(allPeriods[i].start_date),b=new Date(allPeriods[i+1].start_date); diffs.push(Math.round((a-b)/86400000)); }
+  return Math.round(diffs.reduce((s,v)=>s+v,0)/diffs.length);
+}
+function getOvDate(ps){ const d=new Date(ps); d.setDate(d.getDate()+getAvgCycle()-14); return d; }
+function getLatestPS(){ return allPeriods.length?new Date(allPeriods[0].start_date):null; }
+function isPeriodActive(){
+  if(!allPeriods.length) return false;
+  const l=allPeriods[0]; if(l.end_date) return false;
+  return Math.floor((new Date()-new Date(l.start_date))/86400000)<=10;
+}
+
+function updateHome(){
+  const today=new Date();
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('today-label').textContent=`today  ${today.getMonth()+1}.${today.getDate()}  ${days[today.getDay()]}`;
+  const lps=getLatestPS(); const cycle=getAvgCycle();
+  if(lps){
+    const cd=Math.floor((today-lps)/86400000)+1;
+    const ov=getOvDate(lps); const dov=Math.floor((ov-today)/86400000);
+    const ts=new Date(ov);ts.setDate(ts.getDate()-3);
+    const te=new Date(ov);te.setDate(te.getDate()+1);
+
+    // ヒーロー：状態を直接表示
+    let heroMain='', heroSub='';
+    if(cd<=5){ heroMain='生理中'; heroSub=`${cd}日目 — ゆっくり休んで`; }
+    else if(dov>3){ heroMain=`排卵まで あと ${dov} 日`; heroSub=`タイミング推奨 ${ts.getMonth()+1}/${ts.getDate()} 〜 ${te.getMonth()+1}/${te.getDate()}`; }
+    else if(dov>=-1&&dov<=3){ heroMain=dov===0?'今日が排卵予測日':`排卵予測日まで あと ${dov} 日`; heroSub='タイミング推奨期間中'; }
+    else{ const hd=cd-Math.floor(cycle-14); heroMain=`高温期 ${hd} 日目`; heroSub=`検査薬推奨日まで あと ${Math.max(0,14-hd)} 日`; }
+
+    document.getElementById('today-main').textContent=heroMain;
+    document.getElementById('today-sub').textContent=heroSub;
+
+    // フェーズ名（ヘッダーバッジ用）
+    let phase='';
+    if(cd<=5) phase='生理期';
+    else if(dov>3) phase='卵胞期';
+    else if(dov>=-1&&dov<=3) phase='排卵期';
+    else phase='黄体期';
+    document.getElementById('header-cycle').textContent=`周期 ${cd} 日目 / ${cycle} 日周期`;
+    document.getElementById('header-phase').textContent=phase;
+
+    document.getElementById('rc-ov-date').textContent=`${ov.getMonth()+1} / ${ov.getDate()}`;
+    document.getElementById('rc-ov-sub').textContent=dov>0?`あと ${dov} 日`:dov===0?'今日':'過ぎました';
+    document.getElementById('rc-tim-date').textContent=`${ts.getMonth()+1}/${ts.getDate()}〜${te.getMonth()+1}/${te.getDate()}`;
+    document.getElementById('rc-tim-sub').textContent='排卵前後 4 日間';
+    const td=new Date(ov);td.setDate(td.getDate()+14);
+    document.getElementById('rc-test-date').textContent=`${td.getMonth()+1} / ${td.getDate()}`;
+    const dt=Math.floor((td-today)/86400000);
+    document.getElementById('rc-test-sub').textContent=dt>0?`あと ${dt} 日`:dt===0?'今日':'過ぎました';
+    const np=new Date(lps);np.setDate(np.getDate()+cycle);
+    document.getElementById('rc-next-date').textContent=`${np.getMonth()+1} / ${np.getDate()}`;
+    const dn=Math.floor((np-today)/86400000);
+    document.getElementById('rc-next-sub').textContent=dn>0?`あと ${dn} 日`:'予定日前後';
+  } else {
+    document.getElementById('today-main').textContent='ようこそ';
+    document.getElementById('today-sub').textContent='生理開始日を記録すると予測が始まります';
+    document.getElementById('header-cycle').textContent='記録して開始';
+    document.getElementById('header-phase').textContent='';
+    ['rc-ov-date','rc-tim-date','rc-test-date','rc-next-date'].forEach(id=>document.getElementById(id).textContent='—');
+  }
+  const wrap=document.getElementById('period-badge-wrap');
+  wrap.innerHTML=isPeriodActive()?`<div class="period-badge" onclick="openModal('period')"><div class="pb-dot"></div><div class="pb-text">生理中 — 終了日を記録する</div></div>`:'';
+}
+
+function renderCalendar(){
+  const container=document.getElementById('cal-months-container'); container.innerHTML='';
+  const today=new Date();today.setHours(0,0,0,0);
+  const lps=getLatestPS(); const ov=lps?getOvDate(lps):null;
+  const pdays=new Set();
+  allPeriods.forEach(p=>{
+    const s=new Date(p.start_date);s.setHours(0,0,0,0);
+    const e=p.end_date?new Date(p.end_date):new Date(s.getTime()+5*86400000);e.setHours(0,0,0,0);
+    let c=new Date(s);while(c<=e){pdays.add(fmtDate(c));c.setDate(c.getDate()+1);}
+  });
+  const tdays=new Set(allTimings.map(t=>t.date));
+  const tmap={};allTemps.forEach(t=>{tmap[t.date]=t.temperature;});
+  const rdays=new Set();
+  if(ov){for(let i=-3;i<=1;i++){const d=new Date(ov);d.setDate(d.getDate()+i);rdays.add(fmtDate(d));}}
+  let todayBlock=null;
+  const base=new Date();
+  const mn=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  for(let offset=-3;offset<=3;offset++){
+    const d=new Date(base.getFullYear(),base.getMonth()+offset,1);
+    const yr=d.getFullYear(),mo=d.getMonth();
+    const block=document.createElement('div');block.className='cal-month-block';
+    if(offset===0) todayBlock=block;
+    const title=document.createElement('div');title.className='cal-month-title';
+    title.textContent=`${mn[mo]} ${yr}`;block.appendChild(title);
+    const grid=document.createElement('div');grid.className='cal-grid';
+    ['S','M','T','W','T','F','S'].forEach(dow=>{const el=document.createElement('div');el.className='cal-dow';el.textContent=dow;grid.appendChild(el);});
+    const first=new Date(yr,mo,1).getDay(),last=new Date(yr,mo+1,0).getDate();
+    for(let i=0;i<first;i++){const el=document.createElement('div');el.className='cal-day empty';grid.appendChild(el);}
+    for(let dd=1;dd<=last;dd++){
+      const date=new Date(yr,mo,dd);const ds=fmtDate(date);
+      const el=document.createElement('div');el.className='cal-day';
+      if(date.getTime()===today.getTime()) el.classList.add('today');
+      if(pdays.has(ds)) el.classList.add('period');
+      if(ov&&fmtDate(ov)===ds) el.classList.add('ovulation');
+      if(rdays.has(ds)&&!pdays.has(ds)) el.classList.add('recommend');
+      if(tdays.has(ds)) el.classList.add('timing');
+      el.innerHTML=`<span>${dd}</span>`;
+      if(tmap[ds]){const dot=document.createElement('div');dot.className='tdot';dot.style.background=tmap[ds]>=36.7?'var(--pink)':'var(--blue)';el.appendChild(dot);}
+      el.addEventListener('click',()=>openModalForDate(ds));
+      grid.appendChild(el);
+    }
+    block.appendChild(grid);container.appendChild(block);
+  }
+  if(todayBlock) setTimeout(()=>todayBlock.scrollIntoView({block:'start'}),50);
+}
+
+function renderGraph(){
+  const sorted=[...allTemps].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-30);
+  const cycle=getAvgCycle();
+  document.getElementById('stat-cycle').textContent=cycle+'d';
+  if(sorted.length){
+    const avg=sorted.reduce((s,t)=>s+t.temperature,0)/sorted.length;
+    const low=sorted.filter(t=>t.temperature<avg),high=sorted.filter(t=>t.temperature>=avg);
+    document.getElementById('stat-low').textContent=low.length?(low.reduce((s,t)=>s+t.temperature,0)/low.length).toFixed(2):'—';
+    document.getElementById('stat-high').textContent=high.length?(high.reduce((s,t)=>s+t.temperature,0)/high.length).toFixed(2):'—';
+  }
+  const labels=sorted.map(t=>t.date.slice(5).replace('-','/'));
+  const values=sorted.map(t=>t.temperature);
+  const colors=values.map(v=>v>=36.7?'rgba(228,137,121,.9)':'rgba(161,193,222,.9)');
+  if(chartInstance) chartInstance.destroy();
+  const ctx=document.getElementById('tempChart').getContext('2d');
+  chartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:'rgba(190,175,166,.5)',borderWidth:1.5,pointBackgroundColor:colors,pointRadius:4,tension:.3,fill:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(2)+'℃'}}},scales:{y:{min:Math.min(...values,36.0)-.1,max:Math.max(...values,37.2)+.1,ticks:{color:'#beafa6',font:{size:10},callback:v=>v.toFixed(1)},grid:{color:'rgba(16,87,68,.05)'}},x:{ticks:{color:'#beafa6',font:{size:9},maxRotation:0,maxTicksLimit:7},grid:{display:false}}}}});
+  const list=document.getElementById('temp-list');list.innerHTML='';
+  const avg2=values.length?values.reduce((s,v)=>s+v,0)/values.length:36.5;
+  [...allTemps].slice(0,20).forEach(t=>{
+    const memo=allMemos.find(m=>m.date===t.date);
+    const el=document.createElement('div');el.className='temp-row';
+    el.innerHTML=`<div class="temp-date">${t.date.slice(5).replace('-','/')}</div><div class="temp-val ${t.temperature>=avg2?'high':'low'}">${t.temperature.toFixed(2)}</div><div class="temp-memo">${memo?memo.content:''}</div>`;
+    list.appendChild(el);
+  });
+  if(!allTemps.length) list.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;letter-spacing:.04em;">まだ記録がありません</div>';
+}
+
+function calcSimulation(){
+  const v=document.getElementById('sim-lmp').value; if(!v) return;
+  const lmp=new Date(v);
+  document.getElementById('sim-result').classList.remove('hidden');
+  const add=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
+  const fmt=d=>`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  const due=add(lmp,280);
+  const events=[
+    {date:add(lmp,0),label:'最終生理開始日',desc:'妊娠週数の基準日',c:'tan',last:false},
+    {date:add(lmp,28),label:'妊娠 4 週〜（着床確認期）',desc:'妊娠検査薬で陽性が出る頃',c:'pink',last:false},
+    {date:add(lmp,42),label:'妊娠 6 週〜（心拍確認）',desc:'産婦人科で心拍が確認できる目安',c:'pink',last:false},
+    {date:add(lmp,56),label:'妊娠 8 週〜（つわりピーク）',desc:'つわりが最も辛い時期。無理せず休んで',c:'pink',last:false},
+    {date:add(lmp,77),label:'妊娠 11 週〜（つわり落ち着く）',desc:'徐々に体が楽になってくる頃',c:'pink',last:false},
+    {date:add(lmp,84),label:'妊娠 12 週（職場報告の目安）',desc:'体が安定してきたら',c:'green',last:false},
+    {date:add(lmp,112),label:'妊娠 16 週〜（安定期）',desc:'ご家族・友人への報告もこの頃が多い',c:'pink',last:false},
+    {date:add(lmp,196),label:'妊娠 28 週〜（後期）',desc:'バースプランの検討を始める頃',c:'pink',last:false},
+    {date:add(due,-42),label:'産休開始（予定）',desc:'出産予定日の 6 週間前から産前休業が取得可能',c:'green',last:false},
+    {date:due,label:'出産予定日',desc:'妊娠 40 週 0 日',c:'pink',last:false},
+    {date:add(due,42),label:'産後休業終了',desc:'産後 8 週間は就業不可。育休へ移行',c:'tan',last:false},
+    {date:add(due,365),label:'育休〜 1 歳（目安）',desc:'延長申請で最長 2 歳まで',c:'tan',last:true},
+  ];
+  document.getElementById('sim-timeline').innerHTML=events.map(ev=>`<div class="tl-item"><div class="tl-spine"><div class="tl-dot ${ev.c}"></div>${!ev.last?'<div class="tl-line"></div>':''}</div><div class="tl-body"><div class="tl-date">${fmt(ev.date)}</div><div class="tl-label">${ev.label}</div><div class="tl-desc">${ev.desc}</div></div></div>`).join('');
+}
+
+function openModal(type,ds){
+  modalType=type; modalDate=ds||fmtDate(new Date());
+  document.getElementById('modal-eyebrow').textContent=modalDate;
+  const title=document.getElementById('modal-title'),body=document.getElementById('modal-body');
+  if(type==='temp'){
+    title.textContent='体温を記録';
+    const ex=allTemps.find(t=>t.date===modalDate);
+    body.innerHTML=`<div class="form-group"><label class="form-label">basal temperature ℃</label><input class="form-input" type="number" id="input-temp" step="0.01" min="35" max="38.5" placeholder="36.50" value="${ex?ex.temperature:''}"></div><button class="save-btn" onclick="saveTemp()">保存する</button>`;
+  }else if(type==='period'){
+    title.textContent='生理を記録';
+    const active=isPeriodActive();
+    body.innerHTML=`<div class="form-group"><label class="form-label">${active?'end date':'start date'}</label><input class="form-input" type="date" id="input-period-start" value="${modalDate}"></div>${active?'':'<div class="form-group"><label class="form-label">end date（任意）</label><input class="form-input" type="date" id="input-period-end"></div>'}<div class="form-group"><label class="form-label">flow</label><div class="toggle-group" id="flow-group">${['少ない','普通','多い'].map(f=>`<button class="toggle-btn" onclick="selectToggle('flow-group',this)">${f}</button>`).join('')}</div></div><button class="save-btn" onclick="savePeriod(${active})">保存する</button>`;
+  }else if(type==='timing'){
+    title.textContent='タイミング記録';
+    body.innerHTML=`<div class="form-group"><label class="form-label">date</label><input class="form-input" type="date" id="input-timing-date" value="${modalDate}"></div><div class="form-group"><label class="form-label">note（任意）</label><input class="form-input" type="text" id="input-timing-memo" placeholder="気持ち・体調など"></div><button class="save-btn" onclick="saveTiming()">記録する</button>`;
+  }else if(type==='memo'){
+    title.textContent='メモ';
+    const ex=allMemos.find(m=>m.date===modalDate);
+    body.innerHTML=`<div class="form-group"><label class="form-label">note</label><input class="form-input" type="text" id="input-memo" placeholder="体調・気分・おりもの等" value="${ex?ex.content:''}"></div><div class="form-group"><label class="form-label">symptoms</label><div class="toggle-group" id="sym-group">${['胸の張り','腹痛','頭痛','むくみ','眠気','イライラ','肌荒れ'].map(s=>`<button class="toggle-btn" onclick="selectToggle('sym-group',this,'multi')">${s}</button>`).join('')}</div></div><button class="save-btn" onclick="saveMemo()">保存する</button>`;
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function openModalForDate(ds){openModal('temp',ds);}
+function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function selectToggle(gid,btn,mode){
+  const g=document.getElementById(gid);
+  if(mode==='multi') btn.classList.toggle('active');
+  else{g.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+}
+
+async function saveTemp(){
+  const val=parseFloat(document.getElementById('input-temp').value);
+  if(isNaN(val)||val<35||val>39){alert('正しい体温を入力してください');return;}
+  const ex=allTemps.find(t=>t.date===modalDate);
+  if(ex) await db.from('temperatures').update({temperature:val}).eq('id',ex.id);
+  else await db.from('temperatures').insert({user_id:currentUser.id,date:modalDate,temperature:val});
+  closeModal();await loadAllData();
+}
+async function savePeriod(isEnding){
+  const sv=document.getElementById('input-period-start').value;
+  if(isEnding) await db.from('periods').update({end_date:sv}).eq('id',allPeriods[0].id);
+  else{const ee=document.getElementById('input-period-end'); await db.from('periods').insert({user_id:currentUser.id,start_date:sv,end_date:ee?ee.value||null:null});}
+  closeModal();await loadAllData();
+}
+async function saveTiming(){
+  const dv=document.getElementById('input-timing-date').value;
+  const memo=document.getElementById('input-timing-memo').value;
+  if(!allTimings.find(t=>t.date===dv)) await db.from('timings').insert({user_id:currentUser.id,date:dv,memo:memo||null});
+  closeModal();await loadAllData();
+}
+async function saveMemo(){
+  const content=document.getElementById('input-memo').value.trim();
+  const syms=[...document.querySelectorAll('#sym-group .toggle-btn.active')].map(b=>b.textContent);
+  const full=[content,...syms].filter(Boolean).join('・');
+  const ex=allMemos.find(m=>m.date===modalDate);
+  if(ex) await db.from('memos').update({content:full}).eq('id',ex.id);
+  else await db.from('memos').insert({user_id:currentUser.id,date:modalDate,content:full});
+  closeModal();await loadAllData();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));
+  if(name==='graph') renderGraph();
+  if(name==='calendar') renderCalendar();
+}
+function fmtDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+checkSession();
+</script>
+</body>
+</html>
