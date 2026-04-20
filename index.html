@@ -60,7 +60,7 @@ body {
 .login-btn {
   width:100%; max-width:300px; background:var(--green); border:none;
   padding:16px; color:var(--white); font-family:-apple-system,sans-serif;
-  font-size:15px; letter-spacing:.1em; cursor:pointer; transition:opacity .15s;
+  font-size:15px; letter-spacing:.1em; cursor:pointer;
 }
 .login-btn:active { opacity:.8; }
 
@@ -96,10 +96,7 @@ nav {
 .nav-item span { font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-weight:500; }
 
 /* ── Hero ── */
-.hero {
-  background:var(--pink); border-radius:var(--radius);
-  padding:14px 16px 12px; margin-bottom:10px;
-}
+.hero { background:var(--pink); border-radius:var(--radius); padding:14px 16px 12px; margin-bottom:10px; }
 .hero-day { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:white; opacity:.72; font-weight:500; margin-bottom:5px; }
 .hero-main { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.05em; color:white; line-height:1.2; margin-bottom:4px; }
 .hero-sub { font-size:12px; color:white; opacity:.8; font-weight:300; letter-spacing:.03em; }
@@ -121,8 +118,7 @@ nav {
 .quick-btn {
   background:var(--white); border-radius:var(--radius); padding:14px 14px 12px;
   display:flex; flex-direction:column; gap:8px; cursor:pointer; border:none;
-  font-family:-apple-system,sans-serif; transition:opacity .1s;
-  box-shadow:0 1px 4px rgba(0,0,0,.06);
+  font-family:-apple-system,sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.06);
 }
 .quick-btn:active { opacity:.7; }
 .qb-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
@@ -141,27 +137,55 @@ nav {
 .pb-text { font-size:13px; color:var(--pink); font-weight:500; letter-spacing:.02em; }
 
 /* ── Calendar ── */
-.cal-month-block { margin-bottom:22px; }
-.cal-month-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.06em; color:var(--green); margin-bottom:10px; }
+.cal-month-block { margin-bottom:24px; }
+.cal-month-title { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:.06em; color:var(--green); margin-bottom:10px; }
+
+/* フェーズバー */
+.phase-bar-wrap { margin-bottom:10px; }
+.phase-bar {
+  height:24px; border-radius:5px; overflow:hidden; display:flex; position:relative;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.phase-seg {
+  display:flex; align-items:center; justify-content:center; gap:2px;
+  font-size:8px; font-weight:600; letter-spacing:.06em; color:white; opacity:.95;
+}
+.phase-seg svg { flex-shrink:0; }
+.phase-today-line {
+  position:absolute; top:0; bottom:0; width:2px;
+  background:rgba(255,255,255,.9); border-radius:1px;
+}
+.phase-today-line::before {
+  content:'▼'; position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+  font-size:8px; color:var(--green); line-height:1;
+}
+.phase-day-labels { display:flex; margin-top:3px; }
+.phase-day-label { font-size:8px; font-weight:600; letter-spacing:.04em; text-align:center; opacity:.6; }
+
+/* カレンダーグリッド */
 .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--sep); border-radius:var(--radius); overflow:hidden; }
-.cal-dow { background:var(--bg); text-align:center; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--green); opacity:.45; font-weight:600; padding:6px 0; }
+.cal-dow { background:var(--bg); text-align:center; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--green); opacity:.4; font-weight:600; padding:5px 0; }
 .cal-day {
   background:var(--white); aspect-ratio:1; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; cursor:pointer; font-size:13px;
-  color:var(--green); position:relative; gap:2px; transition:opacity .1s;
+  align-items:center; justify-content:center; cursor:pointer; font-size:12px;
+  color:var(--green); position:relative; gap:1px;
 }
 .cal-day:active { opacity:.6; }
 .cal-day.empty { background:var(--bg); cursor:default; }
-.cal-day.today { background:var(--pink); color:white; font-weight:600; }
-.cal-day.period { background:rgba(228,137,121,.12); color:var(--pink); }
-.cal-day.ovulation { background:rgba(16,87,68,.06); }
-.cal-day.ovulation::after { content:''; position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:var(--green); opacity:.5; }
-.cal-day.timing::before { content:''; position:absolute; top:3px; right:3px; width:4px; height:4px; border-radius:50%; background:var(--pink); opacity:.6; }
+.cal-day.today { background:var(--pink); color:white; font-weight:700; border-radius:0; }
+.cal-day.period { background:rgba(228,137,121,.1); }
+.cal-day.ovulation { background:rgba(16,87,68,.07); outline:2px solid var(--green); outline-offset:-2px; }
 .cal-day.recommend { outline:1.5px solid var(--pink); outline-offset:-1.5px; }
-.tdot { width:3px; height:3px; border-radius:50%; }
-.cal-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; padding:0 2px; }
-.legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--green); opacity:.5; font-weight:500; letter-spacing:.03em; }
-.ldot { width:10px; height:10px; border-radius:2px; }
+.cal-day.timing { }
+.cal-day span { line-height:1; font-size:12px; }
+
+/* 日付セル内アイコン */
+.di { position:absolute; bottom:3px; display:flex; gap:1px; }
+.di svg { display:block; }
+
+/* 凡例 */
+.cal-legend { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--green); opacity:.5; font-weight:500; }
 
 /* ── Modal ── */
 .modal-overlay {
@@ -174,7 +198,7 @@ nav {
   background:var(--white); width:100%; border-radius:18px 18px 0 0;
   padding:0 20px calc(20px + env(safe-area-inset-bottom));
   transform:translateY(100%); transition:transform .3s cubic-bezier(.32,1,.23,1);
-  max-height:86vh; overflow-y:auto; border-top:1px solid var(--sep);
+  max-height:86vh; overflow-y:auto;
 }
 .modal-overlay.open .modal { transform:translateY(0); }
 .modal-handle { width:34px; height:4px; background:var(--sep); border-radius:2px; margin:10px auto 18px; }
@@ -191,7 +215,7 @@ nav {
 .toggle-btn {
   padding:8px 16px; border:1.5px solid var(--sep); border-radius:20px;
   background:transparent; color:var(--green); font-size:13px; cursor:pointer;
-  font-family:-apple-system,sans-serif; font-weight:400; letter-spacing:.02em; transition:all .15s;
+  font-family:-apple-system,sans-serif; font-weight:400; transition:all .15s;
 }
 .toggle-btn.active { background:var(--pink); color:white; border-color:var(--pink); }
 .save-btn {
@@ -200,6 +224,16 @@ nav {
   font-size:15px; letter-spacing:.08em; cursor:pointer; margin-top:10px;
 }
 .save-btn:active { opacity:.8; }
+/* モーダル内のクイックアクション選択 */
+.modal-action-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+.modal-action-btn {
+  border:1.5px solid var(--sep); border-radius:10px; padding:12px 10px;
+  background:transparent; cursor:pointer; font-family:-apple-system,sans-serif;
+  display:flex; align-items:center; gap:8px; transition:all .15s;
+}
+.modal-action-btn.selected { border-color:var(--pink); background:rgba(228,137,121,.06); }
+.modal-action-btn svg { flex-shrink:0; }
+.modal-action-btn span { font-size:12px; color:var(--green); font-weight:400; }
 
 /* ── Graph ── */
 .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
@@ -212,7 +246,7 @@ canvas { max-height:200px; }
 .temp-list { background:var(--white); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
 .temp-row { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; border-bottom:1px solid var(--sep); }
 .temp-row:last-child { border-bottom:none; }
-.temp-date { font-size:13px; color:var(--green); opacity:.5; font-weight:300; letter-spacing:.02em; }
+.temp-date { font-size:13px; color:var(--green); opacity:.5; font-weight:300; }
 .temp-val { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:.04em; }
 .temp-val.low { color:var(--blue); }
 .temp-val.high { color:var(--pink); }
@@ -235,7 +269,7 @@ canvas { max-height:200px; }
 .tl-line { width:1.5px; flex:1; background:var(--sep); min-height:16px; }
 .tl-body { padding-bottom:16px; flex:1; }
 .tl-date { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:.04em; color:var(--green); }
-.tl-label { font-size:13px; color:var(--green); margin-top:2px; font-weight:400; letter-spacing:.02em; }
+.tl-label { font-size:13px; color:var(--green); margin-top:2px; font-weight:400; }
 .tl-desc { font-size:11px; color:var(--green); opacity:.45; margin-top:3px; line-height:1.6; font-weight:300; }
 
 .hidden { display:none !important; }
@@ -323,10 +357,27 @@ canvas { max-height:200px; }
   <div class="tab-content" id="tab-calendar">
     <div id="cal-months-container"></div>
     <div class="cal-legend">
-      <div class="legend-item"><div class="ldot" style="background:rgba(228,137,121,.2);border:1px solid var(--pink);"></div>生理</div>
-      <div class="legend-item"><div class="ldot" style="background:rgba(16,87,68,.08);"></div>排卵予測</div>
-      <div class="legend-item"><div class="ldot" style="outline:1.5px solid var(--pink);outline-offset:-1px;"></div>推奨日</div>
-      <div class="legend-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--pink);opacity:.6;"></div>タイミング</div>
+      <div class="legend-item">
+        <!-- 卵アイコン -->
+        <svg width="10" height="12" viewBox="0 0 20 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M10 2C5 2 2 7 2 12c0 4.4 3.6 10 8 10s8-5.6 8-10c0-5-3-10-8-10z"/></svg>
+        排卵予測日
+      </div>
+      <div class="legend-item">
+        <div style="width:10px;height:10px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;"></div>
+        タイミング推奨
+      </div>
+      <div class="legend-item">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--blue)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
+        タイミング記録
+      </div>
+      <div class="legend-item">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(228,137,121,.5)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
+        生理
+      </div>
+      <div class="legend-item">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="var(--tan)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
+        体温記録済
+      </div>
     </div>
   </div>
 
@@ -391,7 +442,13 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{autoRefresh
 let currentUser=null, allTemps=[], allPeriods=[], allTimings=[], allMemos=[];
 let chartInstance=null, modalDate=null, modalType=null;
 
-// swipe down to close modal
+// SVG定義
+const SVG_EGG = `<svg width="9" height="11" viewBox="0 0 20 24" fill="none" stroke="var(--green)" stroke-width="2.2"><path d="M10 1.5C5.5 1.5 2 7 2 12c0 4.4 3.6 10 8 10s8-5.6 8-10c0-5-3.5-10.5-8-10.5z"/></svg>`;
+const SVG_HEART = `<svg width="8" height="8" viewBox="0 0 24 24" fill="var(--blue)" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+const SVG_DOT_PINK = `<svg width="6" height="6" viewBox="0 0 24 24" fill="rgba(228,137,121,.7)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>`;
+const SVG_DOT_TAN = `<svg width="5" height="5" viewBox="0 0 24 24" fill="var(--tan)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>`;
+
+// swipe down to close
 let touchStartY=0;
 document.getElementById('modal-inner').addEventListener('touchstart',e=>{ touchStartY=e.touches[0].clientY; },{passive:true});
 document.getElementById('modal-inner').addEventListener('touchmove',e=>{
@@ -456,18 +513,13 @@ function updateHome(){
     const ov=getOvDate(lps); const dov=Math.floor((ov-today)/86400000);
     const ts=new Date(ov);ts.setDate(ts.getDate()-3);
     const te=new Date(ov);te.setDate(te.getDate()+1);
-
-    // ヒーロー：状態を直接表示
     let heroMain='', heroSub='';
     if(cd<=5){ heroMain='生理中'; heroSub=`${cd}日目 — ゆっくり休んで`; }
     else if(dov>3){ heroMain=`排卵まで あと ${dov} 日`; heroSub=`タイミング推奨 ${ts.getMonth()+1}/${ts.getDate()} 〜 ${te.getMonth()+1}/${te.getDate()}`; }
     else if(dov>=-1&&dov<=3){ heroMain=dov===0?'今日が排卵予測日':`排卵予測日まで あと ${dov} 日`; heroSub='タイミング推奨期間中'; }
     else{ const hd=cd-Math.floor(cycle-14); heroMain=`高温期 ${hd} 日目`; heroSub=`検査薬推奨日まで あと ${Math.max(0,14-hd)} 日`; }
-
     document.getElementById('today-main').textContent=heroMain;
     document.getElementById('today-sub').textContent=heroSub;
-
-    // フェーズ名（ヘッダーバッジ用）
     let phase='';
     if(cd<=5) phase='生理期';
     else if(dov>3) phase='卵胞期';
@@ -475,7 +527,6 @@ function updateHome(){
     else phase='黄体期';
     document.getElementById('header-cycle').textContent=`周期 ${cd} 日目 / ${cycle} 日周期`;
     document.getElementById('header-phase').textContent=phase;
-
     document.getElementById('rc-ov-date').textContent=`${ov.getMonth()+1} / ${ov.getDate()}`;
     document.getElementById('rc-ov-sub').textContent=dov>0?`あと ${dov} 日`:dov===0?'今日':'過ぎました';
     document.getElementById('rc-tim-date').textContent=`${ts.getMonth()+1}/${ts.getDate()}〜${te.getMonth()+1}/${te.getDate()}`;
@@ -503,6 +554,7 @@ function renderCalendar(){
   const container=document.getElementById('cal-months-container'); container.innerHTML='';
   const today=new Date();today.setHours(0,0,0,0);
   const lps=getLatestPS(); const ov=lps?getOvDate(lps):null;
+  const cycle=getAvgCycle();
   const pdays=new Set();
   allPeriods.forEach(p=>{
     const s=new Date(p.start_date);s.setHours(0,0,0,0);
@@ -513,16 +565,58 @@ function renderCalendar(){
   const tmap={};allTemps.forEach(t=>{tmap[t.date]=t.temperature;});
   const rdays=new Set();
   if(ov){for(let i=-3;i<=1;i++){const d=new Date(ov);d.setDate(d.getDate()+i);rdays.add(fmtDate(d));}}
+
   let todayBlock=null;
   const base=new Date();
-  const mn=['January','February','March','April','May','June','July','August','September','October','November','December'];
   for(let offset=-3;offset<=3;offset++){
     const d=new Date(base.getFullYear(),base.getMonth()+offset,1);
     const yr=d.getFullYear(),mo=d.getMonth();
     const block=document.createElement('div');block.className='cal-month-block';
     if(offset===0) todayBlock=block;
+
+    // 月タイトル（数字表記）
     const title=document.createElement('div');title.className='cal-month-title';
-    title.textContent=`${mn[mo]} ${yr}`;block.appendChild(title);
+    title.textContent=`${yr} / ${mo+1}`;block.appendChild(title);
+
+    // フェーズバー（生理記録があれば表示）
+    if(lps){
+      const barWrap=document.createElement('div');barWrap.className='phase-bar-wrap';
+      // 今月の1日が周期何日目か
+      const monthStart=new Date(yr,mo,1);
+      const monthEnd=new Date(yr,mo+1,0);
+      // 直近の生理開始日から計算
+      const periodDay1=Math.floor((monthStart-lps)/86400000)+1;
+
+      const periodLen=5, follicleLen=cycle-19, ovLen=4, lutealLen=10;
+      const totalLen=cycle;
+      const barHTML=`
+        <div class="phase-bar">
+          <div class="phase-seg" style="flex:${periodLen};background:var(--pink);">
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="rgba(255,255,255,.9)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+            <span style="display:${periodLen>=5?'inline':'none'}">生理</span>
+          </div>
+          <div class="phase-seg" style="flex:${follicleLen};background:var(--tan);">
+            <span style="display:${follicleLen>=6?'inline':'none'}">卵胞期</span>
+          </div>
+          <div class="phase-seg" style="flex:${ovLen};background:var(--green);">
+            <svg width="7" height="9" viewBox="0 0 20 24" fill="rgba(255,255,255,.9)" stroke="none"><path d="M10 1C5.5 1 2 6.5 2 12c0 4.4 3.6 10 8 10s8-5.6 8-10C18 6.5 14.5 1 10 1z"/></svg>
+          </div>
+          <div class="phase-seg" style="flex:${lutealLen};background:var(--blue);">
+            <span style="display:${lutealLen>=8?'inline':'none'}">黄体期</span>
+          </div>
+          <div class="phase-today-line" style="left:calc((${((today-lps)/86400000%cycle+cycle)%cycle}/28)*100%)"></div>
+        </div>
+        <div class="phase-day-labels">
+          <div class="phase-day-label" style="flex:${periodLen};color:var(--pink);">1-${periodLen}</div>
+          <div class="phase-day-label" style="flex:${follicleLen};color:var(--tan);">${periodLen+1}-${periodLen+follicleLen}</div>
+          <div class="phase-day-label" style="flex:${ovLen};color:var(--green);">${periodLen+follicleLen+1}-${periodLen+follicleLen+ovLen}</div>
+          <div class="phase-day-label" style="flex:${lutealLen};color:var(--blue);">${periodLen+follicleLen+ovLen+1}-${cycle}</div>
+        </div>`;
+      barWrap.innerHTML=barHTML;
+      block.appendChild(barWrap);
+    }
+
+    // グリッド
     const grid=document.createElement('div');grid.className='cal-grid';
     ['S','M','T','W','T','F','S'].forEach(dow=>{const el=document.createElement('div');el.className='cal-dow';el.textContent=dow;grid.appendChild(el);});
     const first=new Date(yr,mo,1).getDay(),last=new Date(yr,mo+1,0).getDate();
@@ -530,14 +624,29 @@ function renderCalendar(){
     for(let dd=1;dd<=last;dd++){
       const date=new Date(yr,mo,dd);const ds=fmtDate(date);
       const el=document.createElement('div');el.className='cal-day';
-      if(date.getTime()===today.getTime()) el.classList.add('today');
-      if(pdays.has(ds)) el.classList.add('period');
-      if(ov&&fmtDate(ov)===ds) el.classList.add('ovulation');
-      if(rdays.has(ds)&&!pdays.has(ds)) el.classList.add('recommend');
-      if(tdays.has(ds)) el.classList.add('timing');
+      const isToday=date.getTime()===today.getTime();
+      const isPeriod=pdays.has(ds);
+      const isOv=ov&&fmtDate(ov)===ds;
+      const isRec=rdays.has(ds)&&!isPeriod;
+      const isTiming=tdays.has(ds);
+      const hasTemp=!!tmap[ds];
+
+      if(isToday) el.classList.add('today');
+      else if(isPeriod) el.classList.add('period');
+      if(isOv) el.classList.add('ovulation');
+      if(isRec) el.classList.add('recommend');
+
       el.innerHTML=`<span>${dd}</span>`;
-      if(tmap[ds]){const dot=document.createElement('div');dot.className='tdot';dot.style.background=tmap[ds]>=36.7?'var(--pink)':'var(--blue)';el.appendChild(dot);}
-      el.addEventListener('click',()=>openModalForDate(ds));
+
+      // アイコン群（下部）
+      let icons='';
+      if(isOv && !isToday) icons+=SVG_EGG;
+      if(isTiming) icons+=SVG_HEART;
+      if(isPeriod && !isToday) icons+=SVG_DOT_PINK;
+      if(hasTemp && !isToday) icons+=SVG_DOT_TAN;
+      if(icons) el.innerHTML+=`<div class="di">${icons}</div>`;
+
+      el.addEventListener('click',()=>openCalendarModal(ds));
       grid.appendChild(el);
     }
     block.appendChild(grid);container.appendChild(block);
@@ -569,7 +678,7 @@ function renderGraph(){
     el.innerHTML=`<div class="temp-date">${t.date.slice(5).replace('-','/')}</div><div class="temp-val ${t.temperature>=avg2?'high':'low'}">${t.temperature.toFixed(2)}</div><div class="temp-memo">${memo?memo.content:''}</div>`;
     list.appendChild(el);
   });
-  if(!allTemps.length) list.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;letter-spacing:.04em;">まだ記録がありません</div>';
+  if(!allTemps.length) list.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;">まだ記録がありません</div>';
 }
 
 function calcSimulation(){
@@ -596,6 +705,51 @@ function calcSimulation(){
   document.getElementById('sim-timeline').innerHTML=events.map(ev=>`<div class="tl-item"><div class="tl-spine"><div class="tl-dot ${ev.c}"></div>${!ev.last?'<div class="tl-line"></div>':''}</div><div class="tl-body"><div class="tl-date">${fmt(ev.date)}</div><div class="tl-label">${ev.label}</div><div class="tl-desc">${ev.desc}</div></div></div>`).join('');
 }
 
+// カレンダーからの記録モーダル
+function openCalendarModal(ds){
+  modalDate=ds;
+  document.getElementById('modal-eyebrow').textContent=ds;
+  document.getElementById('modal-title').textContent='記録する';
+  const existing={
+    temp: allTemps.find(t=>t.date===ds),
+    timing: allTimings.find(t=>t.date===ds),
+    memo: allMemos.find(m=>m.date===ds),
+  };
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-action-grid">
+      <button class="modal-action-btn" onclick="switchCalModal('temp','${ds}')">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--pink);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+        </div>
+        <span>体温${existing.temp?` (${existing.temp.temperature})`:''}</span>
+      </button>
+      <button class="modal-action-btn" onclick="switchCalModal('period','${ds}')">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3"/></svg>
+        </div>
+        <span>生理</span>
+      </button>
+      <button class="modal-action-btn" onclick="switchCalModal('timing','${ds}')">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </div>
+        <span>タイミング${existing.timing?` ✓`:''}</span>
+      </button>
+      <button class="modal-action-btn" onclick="switchCalModal('memo','${ds}')">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--tan);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <span>メモ${existing.memo?' ✓':''}</span>
+      </button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function switchCalModal(type, ds){
+  openModal(type, ds);
+}
+
 function openModal(type,ds){
   modalType=type; modalDate=ds||fmtDate(new Date());
   document.getElementById('modal-eyebrow').textContent=modalDate;
@@ -618,7 +772,6 @@ function openModal(type,ds){
   }
   document.getElementById('modal-overlay').classList.add('open');
 }
-function openModalForDate(ds){openModal('temp',ds);}
 function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
 function selectToggle(gid,btn,mode){
