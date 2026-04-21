@@ -394,8 +394,7 @@ canvas { max-height:200px; }
           今日
         </div>
       </div>
-    </div>
-  </div>
+    </div>  </div>
 
   <!-- Graph -->
   <div class="tab-content" id="tab-graph">
@@ -745,9 +744,9 @@ function openCalendarModal(ds){
     ${iconBox('var(--pink)','<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>')}
     <div style="flex:1;margin:0 10px;">
       <div style="font-size:11px;color:var(--green);opacity:.45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">体温</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);">${eTemp?eTemp.temperature+'℃':'未記録'}</div>
+      <div style="font-size:13px;color:var(--green);">${eTemp?eTemp.temperature+'℃':'未記録'}</div>
     </div>
-    ${eTemp?actBtns("openModal('temp','"+ds+"')","deleteTemp('"+eTemp.id+"')"):'<button class="row-btn edit" onclick="openModal(\'temp\',\''+ds+'\')">記録 +</button>'}
+    ${eTemp?actBtns(`openModal('temp','${ds}')`,`deleteTemp('${eTemp.id}')`):addBtn(`openModal('temp','${ds}')`)+''}
   </div>`;
 
   // 生理
