@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="tsuki">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#ecf4f9">
 <title>tsuki</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -364,27 +366,33 @@ canvas { max-height:200px; }
   <!-- Calendar -->
   <div class="tab-content" id="tab-calendar">
     <div id="cal-months-container"></div>
-    <div class="cal-legend">
-      <div class="legend-item">
-        <!-- 卵アイコン -->
-        <svg width="10" height="12" viewBox="0 0 20 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M10 2C5 2 2 7 2 12c0 4.4 3.6 10 8 10s8-5.6 8-10c0-5-3-10-8-10z"/></svg>
-        排卵予測日
-      </div>
-      <div class="legend-item">
-        <div style="width:10px;height:10px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;"></div>
-        タイミング推奨
-      </div>
-      <div class="legend-item">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--blue)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
-        タイミング記録
-      </div>
-      <div class="legend-item">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(228,137,121,.5)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
-        生理
-      </div>
-      <div class="legend-item">
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="var(--tan)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
-        体温記録済
+    <div style="background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-top:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+      <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;margin-bottom:10px;">legend</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
+          <svg width="10" height="12" viewBox="0 0 20 26" fill="var(--green)" stroke="none" opacity=".85"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>
+          排卵予測日
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
+          <div style="width:12px;height:12px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;flex-shrink:0;"></div>
+          タイミング推奨期間
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--blue)" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          タイミング記録済
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(228,137,121,.7)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+          生理
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="var(--tan)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+          体温記録済
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
+          <div style="width:12px;height:12px;background:var(--pink);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:8px;font-weight:700;">今</span></div>
+          今日
+        </div>
       </div>
     </div>
   </div>
@@ -739,7 +747,7 @@ function openCalendarModal(ds){
       <div style="font-size:11px;color:var(--green);opacity:.45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">体温</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);">${eTemp?eTemp.temperature+'℃':'未記録'}</div>
     </div>
-    ${eTemp?actBtns(`openModal('temp','${ds}')`,`deleteTemp('${eTemp.id}')`):addBtn(`openModal('temp','${ds}')`)+''}
+    ${eTemp?actBtns("openModal('temp','"+ds+"')","deleteTemp('"+eTemp.id+"')"):'<button class="row-btn edit" onclick="openModal('temp',''+ds+'')">記録 +</button>'}
   </div>`;
 
   // 生理
