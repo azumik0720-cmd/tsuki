@@ -366,35 +366,7 @@ canvas { max-height:200px; }
   <!-- Calendar -->
   <div class="tab-content" id="tab-calendar">
     <div id="cal-months-container"></div>
-    <div style="background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-top:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
-      <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;margin-bottom:10px;">legend</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
-          <svg width="10" height="12" viewBox="0 0 20 26" fill="var(--green)" stroke="none" opacity=".85"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>
-          排卵予測日
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
-          <div style="width:12px;height:12px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;flex-shrink:0;"></div>
-          タイミング推奨期間
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--blue)" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-          タイミング記録済
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="rgba(228,137,121,.7)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
-          生理
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="var(--tan)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
-          体温記録済
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);opacity:.6;">
-          <div style="width:12px;height:12px;background:var(--pink);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:8px;font-weight:700;">今</span></div>
-          今日
-        </div>
-      </div>
-    </div>  </div>
+  </div>
 
   <!-- Graph -->
   <div class="tab-content" id="tab-graph">
@@ -666,7 +638,14 @@ function renderCalendar(){
       el.addEventListener('click',()=>openCalendarModal(ds));
       grid.appendChild(el);
     }
-    block.appendChild(grid);container.appendChild(block);
+    block.appendChild(grid);
+    if(offset===0){
+      const lgDiv=document.createElement('div');
+      lgDiv.style.cssText='background:var(--white);border-radius:var(--radius);padding:10px 12px;margin-top:8px;';
+      lgDiv.innerHTML='<div style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;margin-bottom:8px;">legend</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;color:var(--green);opacity:.55;"><div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'11\' viewBox=\'0 0 20 26\' fill=\'var(--green)\' opacity=\'.85\'><path d=\'M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z\'/></svg>排卵予測日</div><div style="display:flex;align-items:center;gap:5px;"><div style=\"width:10px;height:10px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;flex-shrink:0;\"></div>タイミング推奨</div><div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'9\' viewBox=\'0 0 24 24\' fill=\'var(--blue)\'><path d=\'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z\'/></svg>タイミング記録</div><div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'9\' viewBox=\'0 0 24 24\' fill=\'rgba(228,137,121,.7)\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>生理</div><div style="display:flex;align-items:center;gap:5px;"><svg width=\'7\' height=\'7\' viewBox=\'0 0 24 24\' fill=\'var(--tan)\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>体温記録済</div><div style="display:flex;align-items:center;gap:5px;"><div style=\"width:10px;height:10px;background:var(--pink);border-radius:50%;\"></div>今日</div></div>';
+      block.appendChild(lgDiv);
+    }
+    container.appendChild(block);
   }
   if(todayBlock) setTimeout(()=>todayBlock.scrollIntoView({block:'start'}),50);
 }
@@ -744,9 +723,9 @@ function openCalendarModal(ds){
     ${iconBox('var(--pink)','<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>')}
     <div style="flex:1;margin:0 10px;">
       <div style="font-size:11px;color:var(--green);opacity:.45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">体温</div>
-      <div style="font-size:13px;color:var(--green);">${eTemp?eTemp.temperature+'℃':'未記録'}</div>
+      <div style="font-size:13px;color:var(--green);white-space:nowrap;">${eTemp?eTemp.temperature+'℃':'未記録'}</div>
     </div>
-    ${eTemp?actBtns(`openModal('temp','${ds}')`,`deleteTemp('${eTemp.id}')`):addBtn(`openModal('temp','${ds}')`)+''}
+    ${eTemp?actBtns(`openModal('temp','${ds}')`,`deleteTemp('${eTemp.id}')`):`<button class="row-btn edit" onclick="openModal('temp','${ds}')">記録 +</button>`}
   </div>`;
 
   // 生理
