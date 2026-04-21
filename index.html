@@ -747,7 +747,7 @@ function openCalendarModal(ds){
       <div style="font-size:11px;color:var(--green);opacity:.45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">体温</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);">${eTemp?eTemp.temperature+'℃':'未記録'}</div>
     </div>
-    ${eTemp?actBtns(`openModal('temp','${ds}')`,`deleteTemp('${eTemp.id}')`):addBtn(`openModal('temp','${ds}')`)+''}
+    ${eTemp?actBtns("openModal('temp','"+ds+"')","deleteTemp('"+eTemp.id+"')"):'<button class="row-btn edit" onclick="openModal(\'temp\',\''+ds+'\')">記録 +</button>'}
   </div>`;
 
   // 生理
