@@ -79,7 +79,7 @@ header {
 
 /* ── Content ── */
 #app { flex:1; overflow:hidden; display:flex; flex-direction:column; }
-.tab-content { flex:1; overflow-y:auto; padding:14px 14px 86px; display:none; }
+.tab-content { flex:1; overflow-y:auto; padding:14px 14px 100px; display:none; }
 .tab-content.active { display:block; }
 
 /* ── Bottom Nav ── */
@@ -87,11 +87,12 @@ nav {
   position:fixed; bottom:0; left:0; right:0;
   background:rgba(255,255,255,.94); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
   border-top:1px solid var(--sep); display:flex;
-  padding:8px 0 calc(8px + env(safe-area-inset-bottom)); z-index:50;
+  padding:6px 0 max(20px, calc(12px + env(safe-area-inset-bottom))); z-index:50;
 }
 .nav-item {
   flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:4px 0; cursor:pointer; color:var(--tan); border:none; background:none; transition:color .15s;
+  padding:8px 0 4px; cursor:pointer; color:var(--tan); border:none; background:none; transition:color .15s;
+  min-height:52px;
 }
 .nav-item.active { color:var(--pink); }
 .nav-item svg { width:22px; height:22px; }
@@ -175,16 +176,18 @@ nav {
 .cal-day:active { opacity:.6; }
 .cal-day.empty { background:var(--bg); cursor:default; }
 .cal-day.today { background:var(--pink); color:white; font-weight:700; border-radius:0; }
-.cal-day.period { background:rgba(228,137,121,.14); }
+.cal-day.period { background:rgba(228,137,121,.18); }
 .cal-day.period span { color:var(--pink); }
 .cal-day.ovulation { background:rgba(16,87,68,.08); outline:2px solid var(--green); outline-offset:-2px; }
 .cal-day.ovulation span { color:var(--green); font-weight:600; }
-.cal-day.recommend { outline:1.5px solid var(--pink); outline-offset:-1.5px; }
-.cal-day.pred-period { background:rgba(228,137,121,.06); border:1.5px dashed rgba(228,137,121,.35); }
-.cal-day.pred-period span { color:rgba(228,137,121,.6); }
-.cal-day.pred-ovulation { outline:2px dashed rgba(16,87,68,.35); outline-offset:-2px; }
-.cal-day.pred-ovulation span { color:rgba(16,87,68,.5); }
-.cal-day.pred-recommend { outline:1.5px dashed rgba(228,137,121,.4); outline-offset:-1.5px; }
+.cal-day.recommend { background:rgba(161,193,222,.25); }
+.cal-day.recommend span { color:var(--blue); }
+.cal-day.pred-period { background:rgba(228,137,121,.07); }
+.cal-day.pred-period span { color:rgba(228,137,121,.55); }
+.cal-day.pred-ovulation { outline:2px dashed rgba(16,87,68,.4); outline-offset:-2px; }
+.cal-day.pred-ovulation span { color:rgba(16,87,68,.55); }
+.cal-day.pred-recommend { background:rgba(161,193,222,.12); }
+.cal-day.pred-recommend span { color:rgba(161,193,222,.8); }
 .cal-day span { line-height:1; font-size:12px; }
 
 /* 日付セル内アイコン — 右上に配置 */
@@ -711,17 +714,50 @@ function renderCalendar(){
 
     // 凡例（毎月表示）
     const lgDiv=document.createElement('div');
-    lgDiv.style.cssText='background:var(--white);border-radius:var(--radius);padding:10px 12px;margin-top:8px;';
-    lgDiv.innerHTML='<div style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;margin-bottom:8px;">legend</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;color:var(--green);opacity:.55;">'
-      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(228,137,121,.14);border:1px solid rgba(228,137,121,.4);border-radius:2px;flex-shrink:0;"></div>生理（実績）</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(228,137,121,.06);border:1.5px dashed rgba(228,137,121,.4);border-radius:2px;flex-shrink:0;"></div>生理（予測）</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'11\' viewBox=\'0 0 20 26\' fill=\'var(--green)\' opacity=\'.85\'><path d=\'M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z\'/></svg>排卵（実績）</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'11\' viewBox=\'0 0 20 26\' fill=\'var(--green)\' opacity=\'.35\'><path d=\'M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z\'/></svg>排卵（予測）</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;flex-shrink:0;"></div>タイミング推奨</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'9\' viewBox=\'0 0 24 24\' fill=\'var(--blue)\'><path d=\'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z\'/></svg>タイミング記録</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'7\' height=\'7\' viewBox=\'0 0 24 24\' fill=\'var(--tan)\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>体温記録済</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:var(--pink);border-radius:2px;flex-shrink:0;"></div>今日</div>'
+    lgDiv.style.cssText='background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-top:8px;';
+    lgDiv.innerHTML=''
+      // セクションラベル：生理
+      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--pink);font-weight:600;margin-bottom:6px;opacity:.7;">生理</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;">'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:16px;height:12px;background:rgba(228,137,121,.18);border-radius:2px;flex-shrink:0;"></div>実績'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:16px;height:12px;background:rgba(228,137,121,.07);border-radius:2px;flex-shrink:0;"></div>予測（薄め）'
+        +'</div>'
+      +'</div>'
+      // セクションラベル：排卵
+      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:600;margin-bottom:6px;opacity:.7;">排卵</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;">'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:12px;height:12px;background:rgba(16,87,68,.08);outline:2px solid var(--green);outline-offset:-2px;border-radius:2px;flex-shrink:0;"></div>実績'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:12px;height:12px;outline:2px dashed rgba(16,87,68,.4);outline-offset:-2px;border-radius:2px;flex-shrink:0;"></div>予測（点線）'
+        +'</div>'
+      +'</div>'
+      // セクションラベル：タイミング
+      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:6px;opacity:.8;">タイミング</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;">'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:16px;height:12px;background:rgba(161,193,222,.25);border-radius:2px;flex-shrink:0;"></div>推奨（実績）'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:16px;height:12px;background:rgba(161,193,222,.12);border-radius:2px;flex-shrink:0;"></div>推奨（予測）'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--blue)"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>記録あり'
+        +'</div>'
+      +'</div>'
+      // その他
+      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--tan);font-weight:600;margin-bottom:6px;opacity:.7;">その他</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<svg width="7" height="7" viewBox="0 0 24 24" fill="var(--tan)"><circle cx="12" cy="12" r="10"/></svg>体温記録済'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
+          +'<div style="width:12px;height:12px;background:var(--pink);border-radius:2px;flex-shrink:0;"></div>今日'
+        +'</div>'
       +'</div>';
     block.appendChild(lgDiv);
     container.appendChild(block);
