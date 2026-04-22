@@ -180,6 +180,11 @@ nav {
 .cal-day.ovulation { background:rgba(16,87,68,.08); outline:2px solid var(--green); outline-offset:-2px; }
 .cal-day.ovulation span { color:var(--green); font-weight:600; }
 .cal-day.recommend { outline:1.5px solid var(--pink); outline-offset:-1.5px; }
+.cal-day.pred-period { background:rgba(228,137,121,.06); border:1.5px dashed rgba(228,137,121,.35); }
+.cal-day.pred-period span { color:rgba(228,137,121,.6); }
+.cal-day.pred-ovulation { outline:2px dashed rgba(16,87,68,.35); outline-offset:-2px; }
+.cal-day.pred-ovulation span { color:rgba(16,87,68,.5); }
+.cal-day.pred-recommend { outline:1.5px dashed rgba(228,137,121,.4); outline-offset:-1.5px; }
 .cal-day span { line-height:1; font-size:12px; }
 
 /* 日付セル内アイコン — 右上に配置 */
@@ -473,15 +478,27 @@ async function showApp(){
 
 async function loadAllData(){ await Promise.all([loadTemps(),loadPeriods(),loadTimings(),loadMemos()]); updateHome();renderCalendar();renderGraph(); }
 async function loadTemps(){ const{data}=await db.from('temperatures').select('*').eq('user_id',currentUser.id).order('date',{ascending:false}).limit(60); allTemps=data||[]; }
-async function loadPeriods(){ const{data}=await db.from('periods').select('*').eq('user_id',currentUser.id).order('start_date',{ascending:false}).limit(12); allPeriods=data||[]; }
+async function loadPeriods(){ const{data}=await db.from('periods').select('*').eq('user_id',currentUser.id).order('start_date',{ascending:false}).limit(60); allPeriods=data||[]; }
 async function loadTimings(){ const{data}=await db.from('timings').select('*').eq('user_id',currentUser.id).order('date',{ascending:false}).limit(60); allTimings=data||[]; }
 async function loadMemos(){ const{data}=await db.from('memos').select('*').eq('user_id',currentUser.id).order('date',{ascending:false}).limit(60); allMemos=data||[]; }
 
 function getAvgCycle(){
   if(allPeriods.length<2) return 28;
-  const diffs=[];
-  for(let i=0;i<allPeriods.length-1&&i<5;i++){ const a=new Date(allPeriods[i].start_date),b=new Date(allPeriods[i+1].start_date); diffs.push(Math.round((a-b)/86400000)); }
-  return Math.round(diffs.reduce((s,v)=>s+v,0)/diffs.length);
+  const allDiffs=[];
+  for(let i=0;i<allPeriods.length-1;i++){
+    const a=new Date(allPeriods[i].start_date),b=new Date(allPeriods[i+1].start_date);
+    allDiffs.push(Math.round((a-b)/86400000));
+  }
+  if(!allDiffs.length) return 28;
+  const sorted=[...allDiffs].sort((a,b)=>a-b);
+  const median=sorted[Math.floor(sorted.length/2)];
+  const valid=allDiffs.filter(d=>Math.abs(d-median)<=7);
+  if(!valid.length) return median;
+  const useCount=Math.min(valid.length,12);
+  const recent=valid.slice(0,useCount);
+  let weightSum=0,valSum=0;
+  recent.forEach((d,i)=>{ const w=useCount-i; weightSum+=w; valSum+=d*w; });
+  return Math.round(valSum/weightSum);
 }
 function getOvDate(ps){ const d=new Date(ps); d.setDate(d.getDate()+getAvgCycle()-14); return d; }
 function getLatestPS(){ return allPeriods.length?new Date(allPeriods[0].start_date):null; }
@@ -541,8 +558,10 @@ function updateHome(){
 function renderCalendar(){
   const container=document.getElementById('cal-months-container'); container.innerHTML='';
   const today=new Date();today.setHours(0,0,0,0);
-  const lps=getLatestPS(); const ov=lps?getOvDate(lps):null;
+  const lps=getLatestPS();
   const cycle=getAvgCycle();
+
+  // ── 実績生理日セット ──
   const pdays=new Set();
   allPeriods.forEach(p=>{
     const s=new Date(p.start_date);s.setHours(0,0,0,0);
@@ -551,32 +570,61 @@ function renderCalendar(){
   });
   const tdays=new Set(allTimings.map(t=>t.date));
   const tmap={};allTemps.forEach(t=>{tmap[t.date]=t.temperature;});
+
+  // ── 未来予測: 生理・排卵・タイミング推奨 ──
+  // 予測生理開始日セット（薄表示用）
+  const predPdays=new Set();   // 予測生理期間
+  const predOvdays=new Set();  // 予測排卵日
+  const predRdays=new Set();   // 予測タイミング推奨
+  if(lps){
+    // 今後12ヶ月分を最大13サイクル計算
+    for(let n=1;n<=13;n++){
+      const nextPeriodStart=new Date(lps);
+      nextPeriodStart.setDate(nextPeriodStart.getDate()+cycle*n);
+      nextPeriodStart.setHours(0,0,0,0);
+      // 表示範囲内のみ（今日〜12ヶ月後）
+      const rangeEnd=new Date(today);rangeEnd.setMonth(rangeEnd.getMonth()+12);
+      if(nextPeriodStart>rangeEnd) break;
+      // 予測生理期間（5日間）
+      for(let i=0;i<5;i++){
+        const d=new Date(nextPeriodStart);d.setDate(d.getDate()+i);
+        const ds=fmtDate(d);
+        if(!pdays.has(ds)) predPdays.add(ds); // 実績があれば上書きしない
+      }
+      // 予測排卵日
+      const predOv=new Date(nextPeriodStart);predOv.setDate(predOv.getDate()+cycle-14);
+      const predOvDs=fmtDate(predOv);
+      if(!pdays.has(predOvDs)) predOvdays.add(predOvDs);
+      // 予測タイミング推奨（排卵日-3〜+1）
+      for(let i=-3;i<=1;i++){
+        const d=new Date(predOv);d.setDate(d.getDate()+i);
+        const ds=fmtDate(d);
+        if(!pdays.has(ds)) predRdays.add(ds);
+      }
+    }
+  }
+
+  // 実績排卵日・タイミング推奨（直近1サイクル）
+  const ov=lps?getOvDate(lps):null;
   const rdays=new Set();
   if(ov){for(let i=-3;i<=1;i++){const d=new Date(ov);d.setDate(d.getDate()+i);rdays.add(fmtDate(d));}}
 
   let todayBlock=null;
   const base=new Date();
-  for(let offset=-3;offset<=3;offset++){
+  for(let offset=-12;offset<=12;offset++){
     const d=new Date(base.getFullYear(),base.getMonth()+offset,1);
     const yr=d.getFullYear(),mo=d.getMonth();
     const block=document.createElement('div');block.className='cal-month-block';
     if(offset===0) todayBlock=block;
 
-    // 月タイトル（数字表記）
+    // 月タイトル
     const title=document.createElement('div');title.className='cal-month-title';
     title.textContent=`${yr} / ${mo+1}`;block.appendChild(title);
 
     // フェーズバー（生理記録があれば表示）
     if(lps){
       const barWrap=document.createElement('div');barWrap.className='phase-bar-wrap';
-      // 今月の1日が周期何日目か
-      const monthStart=new Date(yr,mo,1);
-      const monthEnd=new Date(yr,mo+1,0);
-      // 直近の生理開始日から計算
-      const periodDay1=Math.floor((monthStart-lps)/86400000)+1;
-
-      const periodLen=5, follicleLen=cycle-19, ovLen=4, lutealLen=10;
-      const totalLen=cycle;
+      const periodLen=5,follicleLen=Math.max(1,cycle-19),ovLen=4,lutealLen=10;
       const barHTML=`
         <div class="phase-bar">
           <div class="phase-seg" style="flex:${periodLen};background:var(--pink);">
@@ -592,7 +640,7 @@ function renderCalendar(){
           <div class="phase-seg" style="flex:${lutealLen};background:var(--blue);">
             <span style="display:${lutealLen>=8?'inline':'none'}">黄体期</span>
           </div>
-          <div class="phase-today-line" style="left:calc((${((today-lps)/86400000%cycle+cycle)%cycle}/28)*100%)"></div>
+          <div class="phase-today-line" style="left:calc((${((today-lps)/86400000%cycle+cycle)%cycle}/${cycle})*100%)"></div>
         </div>
         <div class="phase-day-labels">
           <div class="phase-day-label" style="flex:${periodLen};color:var(--pink);">1-${periodLen}</div>
@@ -613,25 +661,31 @@ function renderCalendar(){
       const date=new Date(yr,mo,dd);const ds=fmtDate(date);
       const el=document.createElement('div');el.className='cal-day';
       const isToday=date.getTime()===today.getTime();
+      const isFuture=date>today;
       const isPeriod=pdays.has(ds);
-      const isOv=ov&&fmtDate(ov)===ds;
-      const isRec=rdays.has(ds)&&!isPeriod;
+      const isPredPeriod=!isPeriod&&predPdays.has(ds);
+      const isOv=ov&&fmtDate(ov)===ds&&!isFuture;
+      const isPredOv=predOvdays.has(ds);
+      const isRec=rdays.has(ds)&&!isPeriod&&!isFuture;
+      const isPredRec=predRdays.has(ds)&&!isPredPeriod;
       const isTiming=tdays.has(ds);
       const hasTemp=!!tmap[ds];
 
       if(isToday) el.classList.add('today');
       else if(isPeriod) el.classList.add('period');
+      else if(isPredPeriod) el.classList.add('pred-period');
       if(isOv) el.classList.add('ovulation');
+      if(isPredOv&&!isToday) el.classList.add('pred-ovulation');
       if(isRec) el.classList.add('recommend');
+      if(isPredRec&&!isPredOv&&!isToday) el.classList.add('pred-recommend');
 
       el.innerHTML=`<span>${dd}</span>`;
 
-      // アイコン群（右上: 卵・♡ / 下部: 生理・体温ドット）
-      let topIcons='', bottomIcons='';
-      if(isOv && !isToday) topIcons+=SVG_EGG;
+      let topIcons='',bottomIcons='';
+      if(isOv&&!isToday) topIcons+=SVG_EGG;
+      if(isPredOv&&!isToday) topIcons+=`<svg width="10" height="12" viewBox="0 0 20 26" fill="var(--green)" stroke="none" opacity=".35"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>`;
       if(isTiming) topIcons+=SVG_HEART;
-      if(isPeriod && !isToday) bottomIcons+=SVG_DOT_PINK;
-      if(hasTemp && !isToday) bottomIcons+=SVG_DOT_TAN;
+      if(hasTemp&&!isToday) bottomIcons+=SVG_DOT_TAN;
       if(topIcons) el.innerHTML+=`<div class="di">${topIcons}</div>`;
       if(bottomIcons) el.innerHTML+=`<div class="di-bottom">${bottomIcons}</div>`;
 
@@ -639,12 +693,22 @@ function renderCalendar(){
       grid.appendChild(el);
     }
     block.appendChild(grid);
-    if(offset===0){
-      const lgDiv=document.createElement('div');
-      lgDiv.style.cssText='background:var(--white);border-radius:var(--radius);padding:10px 12px;margin-top:8px;';
-      lgDiv.innerHTML='<div style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;margin-bottom:8px;">legend</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;color:var(--green);opacity:.55;"><div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'11\' viewBox=\'0 0 20 26\' fill=\'var(--green)\' opacity=\'.85\'><path d=\'M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z\'/></svg>排卵予測日</div><div style="display:flex;align-items:center;gap:5px;"><div style=\"width:10px;height:10px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;flex-shrink:0;\"></div>タイミング推奨</div><div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'9\' viewBox=\'0 0 24 24\' fill=\'var(--blue)\'><path d=\'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z\'/></svg>タイミング記録</div><div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'9\' viewBox=\'0 0 24 24\' fill=\'rgba(228,137,121,.7)\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>生理</div><div style="display:flex;align-items:center;gap:5px;"><svg width=\'7\' height=\'7\' viewBox=\'0 0 24 24\' fill=\'var(--tan)\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>体温記録済</div><div style="display:flex;align-items:center;gap:5px;"><div style=\"width:10px;height:10px;background:var(--pink);border-radius:50%;\"></div>今日</div></div>';
-      block.appendChild(lgDiv);
-    }
+
+    // 凡例（毎月表示）
+    const lgDiv=document.createElement('div');
+    lgDiv.style.cssText='background:var(--white);border-radius:var(--radius);padding:10px 12px;margin-top:8px;';
+    lgDiv.innerHTML='<div style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;margin-bottom:8px;">legend</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;color:var(--green);opacity:.55;">'
+      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(228,137,121,.14);border:1px solid rgba(228,137,121,.4);border-radius:2px;flex-shrink:0;"></div>生理（実績）</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(228,137,121,.06);border:1.5px dashed rgba(228,137,121,.4);border-radius:2px;flex-shrink:0;"></div>生理（予測）</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'11\' viewBox=\'0 0 20 26\' fill=\'var(--green)\' opacity=\'.85\'><path d=\'M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z\'/></svg>排卵（実績）</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'11\' viewBox=\'0 0 20 26\' fill=\'var(--green)\' opacity=\'.35\'><path d=\'M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z\'/></svg>排卵（予測）</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;outline:1.5px solid var(--pink);outline-offset:-1px;border-radius:2px;flex-shrink:0;"></div>タイミング推奨</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'9\' height=\'9\' viewBox=\'0 0 24 24\' fill=\'var(--blue)\'><path d=\'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z\'/></svg>タイミング記録</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><svg width=\'7\' height=\'7\' viewBox=\'0 0 24 24\' fill=\'var(--tan)\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>体温記録済</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:var(--pink);border-radius:2px;flex-shrink:0;"></div>今日</div>'
+      +'</div>';
+    block.appendChild(lgDiv);
     container.appendChild(block);
   }
   if(todayBlock) setTimeout(()=>todayBlock.scrollIntoView({block:'start'}),50);
@@ -731,9 +795,9 @@ function openCalendarModal(ds){
   // 生理
   html+=`<div style="${rowStyle}">
     ${iconBox('var(--green)','<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3"/></svg>')}
-    <div style="flex:1;margin:0 10px;">
+    <div style="flex:1;margin:0 10px;min-width:0;">
       <div style="font-size:11px;color:var(--green);opacity:.45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">生理</div>
-      <div style="font-size:13px;color:var(--green);">${ePeriod?`開始日: ${ePeriod.start_date.slice(5).replace('-','/')}${ePeriod.end_date?' 〜 '+ePeriod.end_date.slice(5).replace('-','/'):''}`:'-'}</div>
+      <div style="font-size:13px;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ePeriod&&ePeriod.start_date?`開始: ${ePeriod.start_date.slice(5).replace('-','/')}${ePeriod.end_date?' 〜 '+ePeriod.end_date.slice(5).replace('-','/'):''}`:'-'}</div>
     </div>
     ${ePeriod?actBtns(`openModal('period','${ds}')`,`deletePeriod('${ePeriod.id}')`):''}
     ${!ePeriod?`<button class="row-btn edit" onclick="openModal('period','${ds}')">記録 +</button>`:''}
@@ -742,9 +806,9 @@ function openCalendarModal(ds){
   // タイミング
   html+=`<div style="${rowStyle}">
     ${iconBox('var(--blue)','<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>')}
-    <div style="flex:1;margin:0 10px;">
+    <div style="flex:1;margin:0 10px;min-width:0;">
       <div style="font-size:11px;color:var(--green);opacity:.45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">タイミング</div>
-      <div style="font-size:13px;color:var(--green);">${eTiming?'記録あり':'未記録'}</div>
+      <div style="font-size:13px;color:var(--green);white-space:nowrap;">${eTiming?'記録あり':'未記録'}</div>
     </div>
     ${eTiming?actBtns(`openModal('timing','${ds}')`,`deleteTiming('${eTiming.id}')`):`<button class="row-btn edit" onclick="openModal('timing','${ds}')">記録 +</button>`}
   </div>`;
