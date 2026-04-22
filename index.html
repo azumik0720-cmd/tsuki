@@ -375,13 +375,28 @@ canvas { max-height:200px; }
 
   <!-- Graph -->
   <div class="tab-content" id="tab-graph">
+    <!-- 周期サマリー -->
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-val" id="stat-cycle">—</div><div class="stat-lbl">cycle</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-low" style="color:var(--blue)">—</div><div class="stat-lbl">low</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-high" style="color:var(--pink)">—</div><div class="stat-lbl">high</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-cycle">—</div><div class="stat-lbl">平均周期</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-min-cycle" style="color:var(--blue)">—</div><div class="stat-lbl">最短</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-max-cycle" style="color:var(--pink)">—</div><div class="stat-lbl">最長</div></div>
+    </div>
+    <!-- 周期グラフ -->
+    <div class="graph-card">
+      <div class="graph-title">cycle history</div>
+      <canvas id="cycleChart"></canvas>
+    </div>
+    <!-- 周期一覧 -->
+    <div class="sec-hd">cycle log — all records</div>
+    <div class="temp-list" id="cycle-list"></div>
+    <!-- 体温グラフ -->
+    <div class="sec-hd" style="margin-top:20px;">basal body temperature</div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="stat-low" style="color:var(--blue)">—</div><div class="stat-lbl">低温平均</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-high" style="color:var(--pink)">—</div><div class="stat-lbl">高温平均</div></div>
     </div>
     <div class="graph-card"><div class="graph-title">basal body temperature</div><canvas id="tempChart"></canvas></div>
-    <div class="sec-hd">log</div>
+    <div class="sec-hd">temp log</div>
     <div class="temp-list" id="temp-list"></div>
   </div>
 
@@ -473,7 +488,6 @@ async function showApp(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('bottom-nav').classList.remove('hidden');
-  alert(currentUser.id); //
   await loadAllData();
 }
 
@@ -715,22 +729,84 @@ function renderCalendar(){
   if(todayBlock) setTimeout(()=>todayBlock.scrollIntoView({block:'start'}),50);
 }
 
+let cycleChartInstance=null;
 function renderGraph(){
+  // ── 周期データ計算 ──
+  const periods=[...allPeriods].sort((a,b)=>new Date(a.start_date)-new Date(b.start_date));
+  const cycleDiffs=[];
+  for(let i=1;i<periods.length;i++){
+    const a=new Date(periods[i].start_date),b=new Date(periods[i-1].start_date);
+    cycleDiffs.push({date:periods[i].start_date,days:Math.round((a-b)/86400000)});
+  }
+
+  // サマリー
+  const avg=getAvgCycle();
+  document.getElementById('stat-cycle').textContent=avg+'d';
+  if(cycleDiffs.length){
+    const ds=cycleDiffs.map(c=>c.days);
+    document.getElementById('stat-min-cycle').textContent=Math.min(...ds)+'d';
+    document.getElementById('stat-max-cycle').textContent=Math.max(...ds)+'d';
+  } else {
+    document.getElementById('stat-min-cycle').textContent='—';
+    document.getElementById('stat-max-cycle').textContent='—';
+  }
+
+  // 周期グラフ（直近24件）
+  const recentCycles=cycleDiffs.slice(-24);
+  const cycleLabels=recentCycles.map(c=>c.date.slice(5).replace('-','/'));
+  const cycleValues=recentCycles.map(c=>c.days);
+  const cycleColors=cycleValues.map(v=>v===avg?'rgba(16,87,68,.7)':v<avg?'rgba(161,193,222,.9)':'rgba(228,137,121,.9)');
+  if(cycleChartInstance) cycleChartInstance.destroy();
+  if(recentCycles.length){
+    const ctx2=document.getElementById('cycleChart').getContext('2d');
+    cycleChartInstance=new Chart(ctx2,{
+      type:'bar',
+      data:{labels:cycleLabels,datasets:[
+        {data:cycleValues,backgroundColor:cycleColors,borderRadius:3,borderSkipped:false},
+        {type:'line',data:Array(cycleValues.length).fill(avg),borderColor:'rgba(16,87,68,.3)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}
+      ]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'日'}}},scales:{y:{min:Math.min(...cycleValues,24)-2,max:Math.max(...cycleValues,35)+2,ticks:{color:'#beafa6',font:{size:10},stepSize:5},grid:{color:'rgba(16,87,68,.05)'}},x:{ticks:{color:'#beafa6',font:{size:9},maxRotation:45,maxTicksLimit:12},grid:{display:false}}}}
+    });
+  } else {
+    document.getElementById('cycleChart').parentElement.innerHTML+='<div style="padding:12px;color:var(--tan);font-size:13px;">記録が2件以上になると表示されます</div>';
+  }
+
+  // 周期一覧（全件・新しい順）
+  const cycleList=document.getElementById('cycle-list');cycleList.innerHTML='';
+  if(!cycleDiffs.length){
+    cycleList.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;">まだ記録がありません</div>';
+  } else {
+    [...cycleDiffs].reverse().forEach((c,i)=>{
+      const p=periods.find(p=>p.start_date===c.date);
+      const el=document.createElement('div');el.className='temp-row';
+      const endStr=p&&p.end_date?` 〜 ${p.end_date.slice(5).replace('-','/')}`:' 〜';
+      const diff=c.days-avg;
+      const diffStr=diff===0?'±0':(diff>0?'+'+diff:diff)+'d';
+      const diffColor=diff===0?'var(--green)':diff>3||diff<-3?'var(--pink)':'var(--tan)';
+      el.innerHTML=`<div class="temp-date">${c.date.slice(0,7).replace('-','/')}</div><div style="flex:1;margin:0 8px;font-size:12px;color:var(--green);opacity:.7;">${c.date.slice(5).replace('-','/')}${endStr}</div><div class="temp-val" style="font-size:16px;color:var(--green);">${c.days}d</div><div style="font-size:10px;color:${diffColor};min-width:32px;text-align:right;">${diffStr}</div>`;
+      cycleList.appendChild(el);
+    });
+  }
+
+  // ── 体温グラフ ──
   const sorted=[...allTemps].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-30);
-  const cycle=getAvgCycle();
-  document.getElementById('stat-cycle').textContent=cycle+'d';
   if(sorted.length){
-    const avg=sorted.reduce((s,t)=>s+t.temperature,0)/sorted.length;
-    const low=sorted.filter(t=>t.temperature<avg),high=sorted.filter(t=>t.temperature>=avg);
+    const tavg=sorted.reduce((s,t)=>s+t.temperature,0)/sorted.length;
+    const low=sorted.filter(t=>t.temperature<tavg),high=sorted.filter(t=>t.temperature>=tavg);
     document.getElementById('stat-low').textContent=low.length?(low.reduce((s,t)=>s+t.temperature,0)/low.length).toFixed(2):'—';
     document.getElementById('stat-high').textContent=high.length?(high.reduce((s,t)=>s+t.temperature,0)/high.length).toFixed(2):'—';
+  } else {
+    document.getElementById('stat-low').textContent='—';
+    document.getElementById('stat-high').textContent='—';
   }
   const labels=sorted.map(t=>t.date.slice(5).replace('-','/'));
   const values=sorted.map(t=>t.temperature);
   const colors=values.map(v=>v>=36.7?'rgba(228,137,121,.9)':'rgba(161,193,222,.9)');
   if(chartInstance) chartInstance.destroy();
-  const ctx=document.getElementById('tempChart').getContext('2d');
-  chartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:'rgba(190,175,166,.5)',borderWidth:1.5,pointBackgroundColor:colors,pointRadius:4,tension:.3,fill:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(2)+'℃'}}},scales:{y:{min:Math.min(...values,36.0)-.1,max:Math.max(...values,37.2)+.1,ticks:{color:'#beafa6',font:{size:10},callback:v=>v.toFixed(1)},grid:{color:'rgba(16,87,68,.05)'}},x:{ticks:{color:'#beafa6',font:{size:9},maxRotation:0,maxTicksLimit:7},grid:{display:false}}}}});
+  if(values.length){
+    const ctx=document.getElementById('tempChart').getContext('2d');
+    chartInstance=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:'rgba(190,175,166,.5)',borderWidth:1.5,pointBackgroundColor:colors,pointRadius:4,tension:.3,fill:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(2)+'℃'}}},scales:{y:{min:Math.min(...values,36.0)-.1,max:Math.max(...values,37.2)+.1,ticks:{color:'#beafa6',font:{size:10},callback:v=>v.toFixed(1)},grid:{color:'rgba(16,87,68,.05)'}},x:{ticks:{color:'#beafa6',font:{size:9},maxRotation:0,maxTicksLimit:7},grid:{display:false}}}}});
+  }
   const list=document.getElementById('temp-list');list.innerHTML='';
   const avg2=values.length?values.reduce((s,v)=>s+v,0)/values.length:36.5;
   [...allTemps].slice(0,20).forEach(t=>{
