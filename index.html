@@ -87,12 +87,12 @@ nav {
   position:fixed; bottom:0; left:0; right:0;
   background:rgba(255,255,255,.94); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
   border-top:1px solid var(--sep); display:flex;
-  padding:6px 0 max(20px, calc(12px + env(safe-area-inset-bottom))); z-index:50;
+  padding:8px 0 max(16px, calc(8px + env(safe-area-inset-bottom))); z-index:50;
 }
 .nav-item {
   flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:8px 0 4px; cursor:pointer; color:var(--tan); border:none; background:none; transition:color .15s;
-  min-height:52px;
+  padding:6px 0 4px; cursor:pointer; color:var(--tan); border:none; background:none; transition:color .15s;
+  min-height:44px;
 }
 .nav-item.active { color:var(--pink); }
 .nav-item svg { width:22px; height:22px; }
@@ -559,27 +559,94 @@ async function loadMemos(){ const{data}=await db.from('memos').select('*').eq('u
 
 function getAvgCycle(){
   if(allPeriods.length<2) return 28;
-  // allPeriodsは降順（新しい順）なのでdiffsも新しい順
   const allDiffs=[];
   for(let i=0;i<allPeriods.length-1;i++){
     const a=new Date(allPeriods[i].start_date),b=new Date(allPeriods[i+1].start_date);
     allDiffs.push(Math.round((a-b)/86400000));
   }
   if(!allDiffs.length) return 28;
-  // 中央値を全データから計算（外れ値除外の基準）
-  const sorted=[...allDiffs].sort((a,b)=>a-b);
-  const median=sorted[Math.floor(sorted.length/2)];
-  // 外れ値除外：中央値±7日の範囲。順番（直近順）は保持
-  const valid=allDiffs.filter(d=>Math.abs(d-median)<=7);
+  const recent12=allDiffs.slice(0,12);
+  const sorted12=[...recent12].sort((a,b)=>a-b);
+  const median=sorted12[Math.floor(sorted12.length/2)];
+  const valid=recent12.filter(d=>Math.abs(d-median)<=7);
   if(!valid.length) return median;
-  // 直近12件で加重平均（index 0が最新→重み最大）
-  const recent=valid.slice(0,12);
-  const useCount=recent.length;
+  const useCount=valid.length;
   let weightSum=0,valSum=0;
-  recent.forEach((d,i)=>{ const w=useCount-i; weightSum+=w; valSum+=d*w; });
+  valid.forEach((d,i)=>{ const w=useCount-i; weightSum+=w; valSum+=d*w; });
   return Math.round(valSum/weightSum);
 }
-function getOvDate(ps){ const d=new Date(ps); d.setDate(d.getDate()+getAvgCycle()-14); return d; }
+
+// 体温データから低温→高温の切り替わり日（排卵翌日）を検出
+// 返り値: { ovDate: Date|null, daysFromPeriod: number|null, source: 'temp'|'cycle' }
+function detectOvulationFromTemp(periodStart, nextPeriodStart){
+  if(!allTemps.length) return null;
+  const ps=new Date(periodStart);ps.setHours(0,0,0,0);
+  const ne=nextPeriodStart?new Date(nextPeriodStart):null;
+  if(ne) ne.setHours(0,0,0,0);
+
+  // このサイクル内の体温データを抽出（古い順）
+  const cycleTemps=allTemps
+    .filter(t=>{
+      const d=new Date(t.date);d.setHours(0,0,0,0);
+      if(d<ps) return false;
+      if(ne&&d>=ne) return false;
+      return true;
+    })
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  if(cycleTemps.length<6) return null;
+
+  // 平均体温を計算して低温・高温を分類
+  const avg=cycleTemps.reduce((s,t)=>s+t.temperature,0)/cycleTemps.length;
+  // 3日連続して平均+0.2以上が続いたら高温期に入ったと判定
+  for(let i=2;i<cycleTemps.length;i++){
+    const t0=cycleTemps[i-2],t1=cycleTemps[i-1],t2=cycleTemps[i];
+    if(t0.temperature>=avg+0.1 && t1.temperature>=avg+0.1 && t2.temperature>=avg+0.1){
+      // 切り替わり日 = t0の前日 = 排卵日
+      const shiftDate=new Date(t0.date);shiftDate.setHours(0,0,0,0);
+      shiftDate.setDate(shiftDate.getDate()-1);
+      const daysFromPs=Math.round((shiftDate-ps)/86400000);
+      if(daysFromPs>=5&&daysFromPs<=30) return {ovDate:shiftDate, daysFromPeriod:daysFromPs};
+    }
+  }
+  return null;
+}
+
+// 過去サイクルの体温実績から「生理開始→排卵までの日数」平均を計算
+function getAvgOvDayFromTemp(){
+  if(!allPeriods.length||!allTemps.length) return null;
+  const results=[];
+  const sorted=[...allPeriods].sort((a,b)=>new Date(a.start_date)-new Date(b.start_date));
+  for(let i=0;i<sorted.length-1;i++){
+    const r=detectOvulationFromTemp(sorted[i].start_date, sorted[i+1].start_date);
+    if(r) results.push(r.daysFromPeriod);
+  }
+  // 直近サイクルも確認
+  if(sorted.length>=1){
+    const r=detectOvulationFromTemp(sorted[sorted.length-1].start_date, null);
+    if(r) results.push(r.daysFromPeriod);
+  }
+  if(!results.length) return null;
+  // 直近3件の平均
+  const recent=results.slice(-3);
+  return Math.round(recent.reduce((s,v)=>s+v,0)/recent.length);
+}
+
+// 排卵日取得：体温実績があればそれ優先、なければ周期計算
+function getOvDate(ps){
+  const avgOvDay=getAvgOvDayFromTemp();
+  const d=new Date(ps);
+  if(avgOvDay){
+    d.setDate(d.getDate()+avgOvDay);
+  } else {
+    d.setDate(d.getDate()+getAvgCycle()-14);
+  }
+  return d;
+}
+
+// 予測に体温が使われているか
+function isUsingTempForOv(){ return getAvgOvDayFromTemp()!==null; }
+
 function getLatestPS(){ return allPeriods.length?new Date(allPeriods[0].start_date):null; }
 function isPeriodActive(){
   if(!allPeriods.length) return false;
@@ -612,7 +679,8 @@ function updateHome(){
     document.getElementById('header-cycle').textContent=`周期 ${cd} 日目 / ${cycle} 日周期`;
     document.getElementById('header-phase').textContent=phase;
     document.getElementById('rc-ov-date').textContent=`${ov.getMonth()+1} / ${ov.getDate()}`;
-    document.getElementById('rc-ov-sub').textContent=dov>0?`あと ${dov} 日`:dov===0?'今日':'過ぎました';
+    const ovSource=isUsingTempForOv()?'体温実績から':'周期計算から';
+    document.getElementById('rc-ov-sub').textContent=(dov>0?`あと ${dov} 日`:dov===0?'今日':'過ぎました')+` · ${ovSource}`;
     document.getElementById('rc-tim-date').textContent=`${ts.getMonth()+1}/${ts.getDate()}〜${te.getMonth()+1}/${te.getDate()}`;
     document.getElementById('rc-tim-sub').textContent='排卵前後 4 日間';
     const td=new Date(ov);td.setDate(td.getDate()+14);
