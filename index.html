@@ -165,35 +165,43 @@ nav {
 .phase-day-labels { display:flex; margin-top:3px; }
 .phase-day-label { font-size:8px; font-weight:600; letter-spacing:.04em; text-align:center; opacity:.6; }
 
-/* カレンダーグリッド — 帯スタイル */
+/* カレンダーグリッド — セル塗りつぶし */
 .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); border-radius:var(--radius); overflow:hidden; border:1px solid var(--sep); }
 .cal-dow { background:var(--bg); text-align:center; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--green); opacity:.4; font-weight:600; padding:5px 0; border-bottom:1px solid var(--sep); }
 .cal-day {
   background:var(--white); display:flex; flex-direction:column;
   align-items:center; justify-content:flex-start;
   cursor:pointer; color:var(--green); position:relative;
-  min-height:48px; border-right:1px solid var(--sep); border-bottom:1px solid var(--sep);
+  min-height:52px; border-right:1px solid var(--sep); border-bottom:1px solid var(--sep);
 }
 .cal-day:nth-child(7n) { border-right:none; }
-.cal-day:active { opacity:.6; }
+.cal-day:active { opacity:.7; }
 .cal-day.empty { background:transparent; cursor:default; border-color:transparent; }
+/* 生理 */
+.cal-day.period { background:rgba(228,137,121,.22); }
+.cal-day.period .cal-day-num { color:var(--pink); font-weight:600; }
+.cal-day.pred-period { background:rgba(228,137,121,.08); }
+.cal-day.pred-period .cal-day-num { color:rgba(228,137,121,.6); }
+/* 排卵 */
+.cal-day.ovulation { background:rgba(161,193,222,.45); }
+.cal-day.ovulation .cal-day-num { color:#3a7ca8; font-weight:700; }
+.cal-day.pred-ovulation { background:rgba(161,193,222,.18); }
+.cal-day.pred-ovulation .cal-day-num { color:rgba(58,124,168,.6); }
+/* タイミング推奨 */
+.cal-day.recommend { background:rgba(161,193,222,.2); }
+.cal-day.pred-recommend { background:rgba(161,193,222,.08); }
 /* 日付数字 */
 .cal-day-num {
-  font-size:11px; color:var(--green); line-height:1;
-  padding:6px 0 2px; display:flex; align-items:center; justify-content:center;
-  width:22px; height:22px; flex-shrink:0;
+  font-size:12px; color:var(--green); line-height:1;
+  padding:7px 0 3px; display:flex; align-items:center; justify-content:center;
+  width:24px; height:24px; flex-shrink:0;
 }
 .cal-day.today .cal-day-num {
   background:var(--pink); color:white; font-weight:700;
-  border-radius:50%; font-size:11px;
+  border-radius:50%;
 }
-/* 上部帯（塗りつぶし感） */
-.cal-bar {
-  position:absolute; top:0; left:0; right:0; height:5px;
-}
-.cal-bar.period    { background:rgba(228,137,121,.75); }
-.cal-bar.ovulation { background:rgba(161,193,222,.9); }
-.cal-bar.recommend { background:rgba(161,193,222,.4); }
+/* 帯は非表示（塗りつぶしで代替） */
+.cal-bar { display:none; }
 /* アイコンエリア — 横並び・中央 */
 .cal-icons {
   display:flex; flex-direction:row; align-items:center; justify-content:center;
@@ -393,8 +401,13 @@ canvas { max-height:200px; }
       <div class="stat-card"><div class="stat-val" id="stat-high" style="color:var(--pink)">—</div><div class="stat-lbl">高温平均</div></div>
     </div>
     <div class="graph-card"><div class="graph-title">basal body temperature</div><canvas id="tempChart"></canvas></div>
-    <div class="sec-hd">temp log</div>
-    <div class="temp-list" id="temp-list"></div>
+    <button onclick="toggleTempLog()" style="width:100%;background:var(--white);border:none;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-top:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+      <span style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;">temp log</span>
+      <span id="temp-log-arrow" style="font-size:12px;color:var(--green);opacity:.3;">▼</span>
+    </button>
+    <div id="temp-log-wrap" style="display:none;">
+      <div class="temp-list" id="temp-list"></div>
+    </div>
     <!-- 生理周期 -->
     <div class="sec-hd" style="margin-top:20px;">cycle</div>
     <div class="stats-row">
@@ -742,6 +755,12 @@ function renderCalendar(){
       const hasTemp=!!tmap[ds];
 
       if(isToday) el.classList.add('today');
+      else if(isPeriod) el.classList.add('period');
+      else if(isPredPeriod) el.classList.add('pred-period');
+      if(isOv&&!isToday) el.classList.add('ovulation');
+      else if(isPredOv&&!isToday) el.classList.add('pred-ovulation');
+      if(isRec&&!isOv&&!isToday) el.classList.add('recommend');
+      else if(isPredRec&&!isToday) el.classList.add('pred-recommend');
 
       // 日付数字
       const numEl=document.createElement('div');
@@ -1043,6 +1062,13 @@ async function deleteMemo(id){
   closeModal(); await loadAllData();
 }
 
+function toggleTempLog(){
+  const wrap=document.getElementById('temp-log-wrap');
+  const arrow=document.getElementById('temp-log-arrow');
+  const isOpen=wrap.style.display!=='none';
+  wrap.style.display=isOpen?'none':'block';
+  arrow.textContent=isOpen?'▼':'▲';
+}
 function toggleCycleLog(){
   const wrap=document.getElementById('cycle-log-wrap');
   const arrow=document.getElementById('cycle-log-arrow');
