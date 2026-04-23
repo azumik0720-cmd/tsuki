@@ -175,19 +175,22 @@ nav {
 }
 .cal-day:active { opacity:.6; }
 .cal-day.empty { background:var(--bg); cursor:default; }
-.cal-day.today { background:var(--pink); color:white; font-weight:700; border-radius:0; }
-.cal-day.period { background:rgba(228,137,121,.18); }
-.cal-day.period span { color:var(--pink); }
-.cal-day.ovulation { background:rgba(16,87,68,.08); outline:2px solid var(--green); outline-offset:-2px; }
-.cal-day.ovulation span { color:var(--green); font-weight:600; }
-.cal-day.recommend { background:rgba(161,193,222,.25); }
-.cal-day.recommend span { color:var(--blue); }
+.cal-day.today { background:var(--pink); color:white; font-weight:700; }
+/* 生理 */
+.cal-day.period { background:rgba(228,137,121,.2); }
+.cal-day.period span { color:var(--pink); font-weight:600; }
 .cal-day.pred-period { background:rgba(228,137,121,.07); }
-.cal-day.pred-period span { color:rgba(228,137,121,.55); }
-.cal-day.pred-ovulation { outline:2px dashed rgba(16,87,68,.4); outline-offset:-2px; }
-.cal-day.pred-ovulation span { color:rgba(16,87,68,.55); }
-.cal-day.pred-recommend { background:rgba(161,193,222,.12); }
-.cal-day.pred-recommend span { color:rgba(161,193,222,.8); }
+.cal-day.pred-period span { color:rgba(228,137,121,.5); }
+/* 排卵（水色背景＋卵アイコン） */
+.cal-day.ovulation { background:rgba(161,193,222,.45); }
+.cal-day.ovulation span { color:#3a7ca8; font-weight:700; }
+.cal-day.pred-ovulation { background:rgba(161,193,222,.18); }
+.cal-day.pred-ovulation span { color:rgba(58,124,168,.5); }
+/* タイミング推奨 */
+.cal-day.recommend { background:rgba(161,193,222,.25); }
+.cal-day.recommend span { color:#5a8eb5; }
+.cal-day.pred-recommend { background:rgba(161,193,222,.1); }
+.cal-day.pred-recommend span { color:rgba(90,142,181,.6); }
 .cal-day span { line-height:1; font-size:12px; }
 
 /* 日付セル内アイコン — 右上に配置 */
@@ -373,6 +376,10 @@ canvas { max-height:200px; }
 
   <!-- Calendar -->
   <div class="tab-content" id="tab-calendar">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;">calendar</div>
+      <button onclick="openLegendModal()" style="background:transparent;border:1.5px solid var(--sep);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--green);opacity:.5;font-size:12px;font-weight:600;padding:0;">?</button>
+    </div>
     <div id="cal-months-container"></div>
   </div>
 
@@ -435,6 +442,50 @@ canvas { max-height:200px; }
   </button>
 </nav>
 
+<div class="modal-overlay" id="legend-overlay" onclick="closeLegendModal(event)">
+  <div class="modal" id="legend-inner">
+    <div class="modal-handle"></div>
+    <div class="modal-eyebrow">calendar guide</div>
+    <div class="modal-title">カレンダーの見かた</div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:rgba(228,137,121,.2);border-radius:6px;flex-shrink:0;"></div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">生理日</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">記録した生理期間</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:rgba(228,137,121,.07);border-radius:6px;flex-shrink:0;"></div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">生理予測日</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">過去データから計算した予測</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:rgba(161,193,222,.45);border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <svg width="10" height="12" viewBox="0 0 20 26" fill="#3a7ca8"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>
+        </div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">排卵日</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">卵アイコンが目印</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:rgba(161,193,222,.18);border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <svg width="10" height="12" viewBox="0 0 20 26" fill="#3a7ca8" opacity=".4"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>
+        </div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">排卵予測日</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">薄い水色＋薄い卵アイコン</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:rgba(161,193,222,.25);border-radius:6px;flex-shrink:0;"></div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">タイミング推奨日</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">排卵前後の妊娠しやすい期間</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:white;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--sep);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--blue)"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">タイミング記録</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">水色ハートが表示される</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:28px;background:var(--pink);border-radius:6px;flex-shrink:0;"></div>
+        <div><div style="font-size:13px;color:var(--green);font-weight:500;">今日</div><div style="font-size:11px;color:var(--green);opacity:.45;margin-top:2px;">ピンクのベタ塗り</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
   <div class="modal" id="modal-inner">
     <div class="modal-handle"></div>
@@ -454,7 +505,8 @@ let chartInstance=null, modalDate=null, modalType=null;
 
 // SVG定義
 // Aパターン準拠SVGアイコン
-const SVG_EGG = `<svg width="10" height="12" viewBox="0 0 20 26" fill="var(--green)" stroke="none" opacity=".85"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>`;
+const SVG_EGG = `<svg width="10" height="12" viewBox="0 0 20 26" fill="#3a7ca8" stroke="none" opacity=".9"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>`;
+const SVG_EGG_PRED = `<svg width="10" height="12" viewBox="0 0 20 26" fill="#3a7ca8" stroke="none" opacity=".35"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>`;
 const SVG_HEART = `<svg width="9" height="9" viewBox="0 0 24 24" fill="var(--blue)" stroke="none" opacity=".9"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
 const SVG_DOT_PINK = `<svg width="5" height="5" viewBox="0 0 24 24" fill="var(--pink)" stroke="none" opacity=".6"><circle cx="12" cy="12" r="10"/></svg>`;
 const SVG_DOT_TAN = `<svg width="5" height="5" viewBox="0 0 24 24" fill="var(--tan)" stroke="none" opacity=".7"><circle cx="12" cy="12" r="10"/></svg>`;
@@ -701,7 +753,7 @@ function renderCalendar(){
 
       let topIcons='',bottomIcons='';
       if(isOv&&!isToday) topIcons+=SVG_EGG;
-      if(isPredOv&&!isToday) topIcons+=`<svg width="10" height="12" viewBox="0 0 20 26" fill="var(--green)" stroke="none" opacity=".35"><path d="M10 1C5 1 1.5 7 1.5 13c0 5 3.8 12 8.5 12s8.5-7 8.5-12C18.5 7 15 1 10 1z"/></svg>`;
+      if(isPredOv&&!isToday) topIcons+=SVG_EGG_PRED;
       if(isTiming) topIcons+=SVG_HEART;
       if(hasTemp&&!isToday) bottomIcons+=SVG_DOT_TAN;
       if(topIcons) el.innerHTML+=`<div class="di">${topIcons}</div>`;
@@ -711,55 +763,6 @@ function renderCalendar(){
       grid.appendChild(el);
     }
     block.appendChild(grid);
-
-    // 凡例（毎月表示）
-    const lgDiv=document.createElement('div');
-    lgDiv.style.cssText='background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-top:8px;';
-    lgDiv.innerHTML=''
-      // セクションラベル：生理
-      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--pink);font-weight:600;margin-bottom:6px;opacity:.7;">生理</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;">'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:16px;height:12px;background:rgba(228,137,121,.18);border-radius:2px;flex-shrink:0;"></div>実績'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:16px;height:12px;background:rgba(228,137,121,.07);border-radius:2px;flex-shrink:0;"></div>予測（薄め）'
-        +'</div>'
-      +'</div>'
-      // セクションラベル：排卵
-      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:600;margin-bottom:6px;opacity:.7;">排卵</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;">'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:12px;height:12px;background:rgba(16,87,68,.08);outline:2px solid var(--green);outline-offset:-2px;border-radius:2px;flex-shrink:0;"></div>実績'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:12px;height:12px;outline:2px dashed rgba(16,87,68,.4);outline-offset:-2px;border-radius:2px;flex-shrink:0;"></div>予測（点線）'
-        +'</div>'
-      +'</div>'
-      // セクションラベル：タイミング
-      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:6px;opacity:.8;">タイミング</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;">'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:16px;height:12px;background:rgba(161,193,222,.25);border-radius:2px;flex-shrink:0;"></div>推奨（実績）'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:16px;height:12px;background:rgba(161,193,222,.12);border-radius:2px;flex-shrink:0;"></div>推奨（予測）'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--blue)"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>記録あり'
-        +'</div>'
-      +'</div>'
-      // その他
-      +'<div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--tan);font-weight:600;margin-bottom:6px;opacity:.7;">その他</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<svg width="7" height="7" viewBox="0 0 24 24" fill="var(--tan)"><circle cx="12" cy="12" r="10"/></svg>体温記録済'
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);opacity:.6;">'
-          +'<div style="width:12px;height:12px;background:var(--pink);border-radius:2px;flex-shrink:0;"></div>今日'
-        +'</div>'
-      +'</div>';
-    block.appendChild(lgDiv);
     container.appendChild(block);
   }
   if(todayBlock) setTimeout(()=>todayBlock.scrollIntoView({block:'start'}),50);
@@ -967,6 +970,8 @@ function openModal(type,ds){
   }
   document.getElementById('modal-overlay').classList.add('open');
 }
+function openLegendModal(){ document.getElementById('legend-overlay').classList.add('open'); }
+function closeLegendModal(e){ if(e.target===document.getElementById('legend-overlay')) document.getElementById('legend-overlay').classList.remove('open'); }
 function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
 function selectToggle(gid,btn,mode){
