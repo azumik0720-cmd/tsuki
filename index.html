@@ -172,7 +172,7 @@ nav {
   background:var(--white); display:flex; flex-direction:column;
   align-items:center; justify-content:flex-start;
   cursor:pointer; color:var(--green); position:relative;
-  min-height:38px; border-right:1px solid var(--sep); border-bottom:1px solid var(--sep);
+  min-height:48px; border-right:1px solid var(--sep); border-bottom:1px solid var(--sep);
 }
 .cal-day:nth-child(7n) { border-right:none; }
 .cal-day:active { opacity:.6; }
@@ -180,24 +180,24 @@ nav {
 /* 日付数字 */
 .cal-day-num {
   font-size:11px; color:var(--green); line-height:1;
-  padding:5px 0 3px; display:flex; align-items:center; justify-content:center;
-  width:20px; height:20px;
+  padding:6px 0 2px; display:flex; align-items:center; justify-content:center;
+  width:22px; height:22px; flex-shrink:0;
 }
 .cal-day.today .cal-day-num {
   background:var(--pink); color:white; font-weight:700;
   border-radius:50%; font-size:11px;
 }
-/* 下部帯 */
+/* 上部帯（塗りつぶし感） */
 .cal-bar {
-  width:100%; height:4px; margin-top:auto; border-radius:0;
+  position:absolute; top:0; left:0; right:0; height:5px;
 }
-.cal-bar.period    { background:rgba(228,137,121,.85); }
+.cal-bar.period    { background:rgba(228,137,121,.75); }
 .cal-bar.ovulation { background:rgba(161,193,222,.9); }
 .cal-bar.recommend { background:rgba(161,193,222,.4); }
-/* アイコンエリア */
+/* アイコンエリア — 横並び・中央 */
 .cal-icons {
-  display:flex; flex-direction:column; align-items:center; gap:1px;
-  position:absolute; bottom:6px;
+  display:flex; flex-direction:row; align-items:center; justify-content:center;
+  gap:2px; margin-top:2px;
 }
 /* 体温ドット */
 .di-bottom { position:absolute; top:3px; right:2px; display:flex; gap:1px; }
@@ -387,22 +387,7 @@ canvas { max-height:200px; }
 
   <!-- Graph -->
   <div class="tab-content" id="tab-graph">
-    <!-- 周期サマリー -->
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-val" id="stat-cycle">—</div><div class="stat-lbl">平均周期</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-min-cycle" style="color:var(--blue)">—</div><div class="stat-lbl">最短</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-max-cycle" style="color:var(--pink)">—</div><div class="stat-lbl">最長</div></div>
-    </div>
-    <!-- 周期グラフ -->
-    <div class="graph-card">
-      <div class="graph-title">cycle history</div>
-      <canvas id="cycleChart"></canvas>
-    </div>
-    <!-- 周期一覧 -->
-    <div class="sec-hd">cycle log — all records</div>
-    <div class="temp-list" id="cycle-list"></div>
-    <!-- 体温グラフ -->
-    <div class="sec-hd" style="margin-top:20px;">basal body temperature</div>
+    <!-- 体温サマリー -->
     <div class="stats-row">
       <div class="stat-card"><div class="stat-val" id="stat-low" style="color:var(--blue)">—</div><div class="stat-lbl">低温平均</div></div>
       <div class="stat-card"><div class="stat-val" id="stat-high" style="color:var(--pink)">—</div><div class="stat-lbl">高温平均</div></div>
@@ -410,6 +395,25 @@ canvas { max-height:200px; }
     <div class="graph-card"><div class="graph-title">basal body temperature</div><canvas id="tempChart"></canvas></div>
     <div class="sec-hd">temp log</div>
     <div class="temp-list" id="temp-list"></div>
+    <!-- 生理周期 -->
+    <div class="sec-hd" style="margin-top:20px;">cycle</div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="stat-cycle">—</div><div class="stat-lbl">平均周期</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-min-cycle" style="color:var(--blue)">—</div><div class="stat-lbl">最短</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-max-cycle" style="color:var(--pink)">—</div><div class="stat-lbl">最長</div></div>
+    </div>
+    <div class="graph-card">
+      <div class="graph-title">cycle history</div>
+      <canvas id="cycleChart"></canvas>
+    </div>
+    <!-- 周期ログ（折りたたみ） -->
+    <button onclick="toggleCycleLog()" style="width:100%;background:var(--white);border:none;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-top:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+      <span style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);opacity:.4;font-weight:600;">cycle log — all records</span>
+      <span id="cycle-log-arrow" style="font-size:12px;color:var(--green);opacity:.3;">▼</span>
+    </button>
+    <div id="cycle-log-wrap" style="display:none;">
+      <div class="temp-list" id="cycle-list"></div>
+    </div>
   </div>
 
   <!-- Simulation -->
@@ -542,18 +546,22 @@ async function loadMemos(){ const{data}=await db.from('memos').select('*').eq('u
 
 function getAvgCycle(){
   if(allPeriods.length<2) return 28;
+  // allPeriodsは降順（新しい順）なのでdiffsも新しい順
   const allDiffs=[];
   for(let i=0;i<allPeriods.length-1;i++){
     const a=new Date(allPeriods[i].start_date),b=new Date(allPeriods[i+1].start_date);
     allDiffs.push(Math.round((a-b)/86400000));
   }
   if(!allDiffs.length) return 28;
+  // 中央値を全データから計算（外れ値除外の基準）
   const sorted=[...allDiffs].sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
+  // 外れ値除外：中央値±7日の範囲。順番（直近順）は保持
   const valid=allDiffs.filter(d=>Math.abs(d-median)<=7);
   if(!valid.length) return median;
-  const useCount=Math.min(valid.length,12);
-  const recent=valid.slice(0,useCount);
+  // 直近12件で加重平均（index 0が最新→重み最大）
+  const recent=valid.slice(0,12);
+  const useCount=recent.length;
   let weightSum=0,valSum=0;
   recent.forEach((d,i)=>{ const w=useCount-i; weightSum+=w; valSum+=d*w; });
   return Math.round(valSum/weightSum);
@@ -789,44 +797,7 @@ function renderGraph(){
     document.getElementById('stat-max-cycle').textContent='—';
   }
 
-  // 周期グラフ（直近24件）
-  const recentCycles=cycleDiffs.slice(-24);
-  const cycleLabels=recentCycles.map(c=>c.date.slice(5).replace('-','/'));
-  const cycleValues=recentCycles.map(c=>c.days);
-  const cycleColors=cycleValues.map(v=>v===avg?'rgba(16,87,68,.7)':v<avg?'rgba(161,193,222,.9)':'rgba(228,137,121,.9)');
-  if(cycleChartInstance) cycleChartInstance.destroy();
-  if(recentCycles.length){
-    const ctx2=document.getElementById('cycleChart').getContext('2d');
-    cycleChartInstance=new Chart(ctx2,{
-      type:'bar',
-      data:{labels:cycleLabels,datasets:[
-        {data:cycleValues,backgroundColor:cycleColors,borderRadius:3,borderSkipped:false},
-        {type:'line',data:Array(cycleValues.length).fill(avg),borderColor:'rgba(16,87,68,.3)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}
-      ]},
-      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'日'}}},scales:{y:{min:Math.min(...cycleValues,24)-2,max:Math.max(...cycleValues,35)+2,ticks:{color:'#beafa6',font:{size:10},stepSize:5},grid:{color:'rgba(16,87,68,.05)'}},x:{ticks:{color:'#beafa6',font:{size:9},maxRotation:45,maxTicksLimit:12},grid:{display:false}}}}
-    });
-  } else {
-    document.getElementById('cycleChart').parentElement.innerHTML+='<div style="padding:12px;color:var(--tan);font-size:13px;">記録が2件以上になると表示されます</div>';
-  }
-
-  // 周期一覧（全件・新しい順）
-  const cycleList=document.getElementById('cycle-list');cycleList.innerHTML='';
-  if(!cycleDiffs.length){
-    cycleList.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;">まだ記録がありません</div>';
-  } else {
-    [...cycleDiffs].reverse().forEach((c,i)=>{
-      const p=periods.find(p=>p.start_date===c.date);
-      const el=document.createElement('div');el.className='temp-row';
-      const endStr=p&&p.end_date?` 〜 ${p.end_date.slice(5).replace('-','/')}`:' 〜';
-      const diff=c.days-avg;
-      const diffStr=diff===0?'±0':(diff>0?'+'+diff:diff)+'d';
-      const diffColor=diff===0?'var(--green)':diff>3||diff<-3?'var(--pink)':'var(--tan)';
-      el.innerHTML=`<div class="temp-date">${c.date.slice(0,7).replace('-','/')}</div><div style="flex:1;margin:0 8px;font-size:12px;color:var(--green);opacity:.7;">${c.date.slice(5).replace('-','/')}${endStr}</div><div class="temp-val" style="font-size:16px;color:var(--green);">${c.days}d</div><div style="font-size:10px;color:${diffColor};min-width:32px;text-align:right;">${diffStr}</div>`;
-      cycleList.appendChild(el);
-    });
-  }
-
-  // ── 体温グラフ ──
+  // ── 体温グラフ（先に処理） ──
   const sorted=[...allTemps].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-30);
   if(sorted.length){
     const tavg=sorted.reduce((s,t)=>s+t.temperature,0)/sorted.length;
@@ -854,6 +825,41 @@ function renderGraph(){
     list.appendChild(el);
   });
   if(!allTemps.length) list.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;">まだ記録がありません</div>';
+
+  // ── 周期グラフ（後に処理） ──
+  const recentCycles=cycleDiffs.slice(-24);
+  const cycleLabels=recentCycles.map(c=>c.date.slice(5).replace('-','/'));
+  const cycleValues=recentCycles.map(c=>c.days);
+  const cycleColors=cycleValues.map(v=>v===avg?'rgba(16,87,68,.7)':v<avg?'rgba(161,193,222,.9)':'rgba(228,137,121,.9)');
+  if(cycleChartInstance) cycleChartInstance.destroy();
+  if(recentCycles.length){
+    const ctx2=document.getElementById('cycleChart').getContext('2d');
+    cycleChartInstance=new Chart(ctx2,{
+      type:'bar',
+      data:{labels:cycleLabels,datasets:[
+        {data:cycleValues,backgroundColor:cycleColors,borderRadius:3,borderSkipped:false},
+        {type:'line',data:Array(cycleValues.length).fill(avg),borderColor:'rgba(16,87,68,.3)',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false}
+      ]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'日'}}},scales:{y:{min:Math.min(...cycleValues,24)-2,max:Math.max(...cycleValues,35)+2,ticks:{color:'#beafa6',font:{size:10},stepSize:5},grid:{color:'rgba(16,87,68,.05)'}},x:{ticks:{color:'#beafa6',font:{size:9},maxRotation:45,maxTicksLimit:12},grid:{display:false}}}}
+    });
+  }
+
+  // 周期一覧（折りたたみ内・全件・新しい順）
+  const cycleList=document.getElementById('cycle-list');cycleList.innerHTML='';
+  if(!cycleDiffs.length){
+    cycleList.innerHTML='<div style="padding:16px;color:var(--tan);font-size:13px;">まだ記録がありません</div>';
+  } else {
+    [...cycleDiffs].reverse().forEach((c)=>{
+      const p=periods.find(p=>p.start_date===c.date);
+      const el=document.createElement('div');el.className='temp-row';
+      const endStr=p&&p.end_date?` 〜 ${p.end_date.slice(5).replace('-','/')}`:' 〜';
+      const diff=c.days-avg;
+      const diffStr=diff===0?'±0':(diff>0?'+'+diff:diff)+'d';
+      const diffColor=diff===0?'var(--green)':diff>3||diff<-3?'var(--pink)':'var(--tan)';
+      el.innerHTML=`<div class="temp-date">${c.date.slice(0,7).replace('-','/')}</div><div style="flex:1;margin:0 8px;font-size:12px;color:var(--green);opacity:.7;">${c.date.slice(5).replace('-','/')}${endStr}</div><div class="temp-val" style="font-size:16px;color:var(--green);">${c.days}d</div><div style="font-size:10px;color:${diffColor};min-width:32px;text-align:right;">${diffStr}</div>`;
+      cycleList.appendChild(el);
+    });
+  }
 }
 
 function calcSimulation(){
@@ -1037,6 +1043,13 @@ async function deleteMemo(id){
   closeModal(); await loadAllData();
 }
 
+function toggleCycleLog(){
+  const wrap=document.getElementById('cycle-log-wrap');
+  const arrow=document.getElementById('cycle-log-arrow');
+  const isOpen=wrap.style.display!=='none';
+  wrap.style.display=isOpen?'none':'block';
+  arrow.textContent=isOpen?'▼':'▲';
+}
 function switchTab(name){
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
