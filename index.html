@@ -640,7 +640,7 @@ function getAvgOvDayFromTemp(){
     const r=detectOvulationFromTemp(sorted[sorted.length-1].start_date, null);
     if(r) results.push(r.daysFromPeriod);
   }
-  if(!results.length) return null;
+  if(results.length < 2) return null; // 2サイクル分の体温実績が揃うまで周期計算にフォールバック
   // 直近3件の平均
   const recent=results.slice(-3);
   return Math.round(recent.reduce((s,v)=>s+v,0)/recent.length);
@@ -773,20 +773,19 @@ function renderCalendar(){
   const sortedPeriods=[...allPeriods].sort((a,b)=>new Date(a.start_date)-new Date(b.start_date));
   sortedPeriods.forEach((p,i)=>{
     const ps=new Date(p.start_date);ps.setHours(0,0,0,0);
-    let thisCycle;
-    if(i<sortedPeriods.length-1){
-      // 次の生理がある→実際の周期を使う
-      const next=new Date(sortedPeriods[i+1].start_date);next.setHours(0,0,0,0);
-      thisCycle=Math.round((next-ps)/86400000);
+    let ovd;
+    if(i===sortedPeriods.length-1){
+      // 最新サイクル：getOvDate でホームと同じ予測値を使う（体温/周期を統合）
+      ovd=getOvDate(ps);
     } else {
-      // 最新サイクル→平均周期を使う
-      thisCycle=cycle;
+      // 過去サイクル：実際の次の生理までの間隔で正確に計算
+      const next=new Date(sortedPeriods[i+1].start_date);next.setHours(0,0,0,0);
+      const thisCycle=Math.round((next-ps)/86400000);
+      ovd=new Date(ps);ovd.setDate(ovd.getDate()+thisCycle-14);
     }
-    const ovd=new Date(ps);ovd.setDate(ovd.getDate()+thisCycle-14);
     ovdays.add(fmtDate(ovd));
-    for(let i=-3;i<=1;i++){const d=new Date(ovd);d.setDate(d.getDate()+i);rdays.add(fmtDate(d));}
+    for(let j=-3;j<=1;j++){const d=new Date(ovd);d.setDate(d.getDate()+j);rdays.add(fmtDate(d));}
   });
-
   let todayBlock=null;
   const base=new Date();
   for(let offset=-12;offset<=12;offset++){
